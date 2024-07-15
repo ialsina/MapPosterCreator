@@ -3,3 +3,6 @@ descartes
 geopandas
 shapely
 matplotlib
+pandas
+requests
+wget
