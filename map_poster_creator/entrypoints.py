@@ -1,7 +1,8 @@
 import argparse
 import logging
-import webbrowser
+from pathlib import Path
 from pprint import pprint
+import webbrowser
 
 from map_poster_creator.color_schemes import base_color_scheme, get_color_schemes, add_user_color_scheme
 from map_poster_creator.main import create_poster
@@ -162,8 +163,8 @@ def process_misc_service_call(args: argparse.Namespace) -> None:
 def process_poster_service_call(args: argparse.Namespace) -> None:
     command = args.poster_commands
 
-    shp_path = args.shp_path
-    geojson = args.geojson
+    shp_path = Path(args.shp_path)
+    geojson = Path(args.geojson)
     colors = args.colors
     output_prefix = args.output_prefix
 

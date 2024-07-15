@@ -1,4 +1,5 @@
 from typing import Tuple, Sequence, Mapping, Union
+from pathlib import Path
 
 from geopandas import GeoDataFrame
 from shapely.geometry import Polygon
@@ -12,21 +13,21 @@ logger = logging.getLogger(__name__)
 
 
 @log_processing
-def get_roads_data(shp_path: str) -> GeoDataFrame:
-    roads = GeoDataFrame.from_file(f"{shp_path}/gis_osm_roads_free_1.shp", encoding='utf-8')
-    return roads  # TODO: Add Path or os.path
+def get_roads_data(shp_path: Path) -> GeoDataFrame:
+    roads = GeoDataFrame.from_file(shp_path / "gis_osm_roads_free_1.shp", encoding='utf-8')
+    return roads
 
 
 @log_processing
-def get_water_data(shp_path: str) -> GeoDataFrame:
-    water = GeoDataFrame.from_file(f"{shp_path}/gis_osm_water_a_free_1.shp", encoding='utf-8')
-    return water  # TODO: Add Path or os.path
+def get_water_data(shp_path: Path) -> GeoDataFrame:
+    water = GeoDataFrame.from_file(shp_path / "gis_osm_water_a_free_1.shp", encoding='utf-8')
+    return water
 
 
 @log_processing
-def get_greens_data(shp_path: str) -> GeoDataFrame:
-    greens = GeoDataFrame.from_file(f"{shp_path}/gis_osm_pois_a_free_1.shp", encoding='utf-8')
-    return greens  # TODO: Add Path or os.path
+def get_greens_data(shp_path: Path) -> GeoDataFrame:
+    greens = GeoDataFrame.from_file(shp_path / "gis_osm_pois_a_free_1.shp", encoding='utf-8')
+    return greens
 
 
 @log_processing
@@ -51,8 +52,8 @@ def preprocessing_other(poly: Polygon, dataframe: GeoDataFrame) -> GeoDataFrame:
 
 
 def create_poster(
-        base_shp_path: str,
-        geojson_path: str,
+        base_shp_path: Path,
+        geojson_path: Path,
         colors: Union[Mapping[str, str], Sequence[str]],
         layers: Sequence[str],
         config: dict,
