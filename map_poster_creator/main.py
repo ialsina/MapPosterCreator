@@ -1,4 +1,4 @@
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, Sequence, Mapping, Union
 
 from geopandas import GeoDataFrame
 from shapely.geometry import Polygon
@@ -53,8 +53,8 @@ def preprocessing_other(poly: Polygon, dataframe: GeoDataFrame) -> GeoDataFrame:
 def create_poster(
         base_shp_path: str,
         geojson_path: str,
-        colors: Union[List[Union[Dict, str]], None],
-        layers: List[str],
+        colors: Union[Mapping[str, str], Sequence[str]],
+        layers: Sequence[str],
         config: dict,
         output_prefix: str,
         user_color_scheme: bool = False,
@@ -66,7 +66,6 @@ def create_poster(
     roads_df = preprocessing_roads(poly=poly, roads=roads)
     water_df = preprocessing_other(poly=poly, dataframe=water)
     greens_df = preprocessing_other(poly=poly, dataframe=greens)
-    # TODO: Support user color scheme
     for color in colors:
         if color not in get_color_schemes().keys():
             logger.warning(f"Color {color} not found in base color scheme. "
@@ -75,7 +74,7 @@ def create_poster(
         print(f"Plot and Save {color} map")
         plot_and_save(
             roads=roads_df,
-            water=water,
+            water=water_df,
             greens=greens_df,
             geometry=geometry,
             path=f'{output_prefix}_{color}.png',
