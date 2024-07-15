@@ -1,4 +1,10 @@
-# TODO: Add configs =)
+from dataclasses import dataclass
+from pathlib import Path
 
-MAPOC_USER_PATH = "mapoc"
-USER_COLORS_SCHEME_FILE = "colors_scheme.json"
+@dataclass(frozen=True)
+class paths:
+    data_root = Path.home() / ".mapoc"
+    colors = data_root / "colors.json"
+    cities = data_root / "cities.csv"
+    cities_hash = data_root / ".cities.hash"
+

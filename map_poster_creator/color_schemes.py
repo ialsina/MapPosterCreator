@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Union, Tuple, List, Dict
 
-from map_poster_creator.config import MAPOC_USER_PATH, USER_COLORS_SCHEME_FILE
+from map_poster_creator.config import paths
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +60,10 @@ def hex_to_faceacolor(hex_color: str) -> Tuple[float]:
 
 
 def get_color_schemes() -> Dict[str, Dict[str, Union[List[float], Tuple[float]]]]:
-    config_path = Path(os.path.expanduser("~")) / MAPOC_USER_PATH / USER_COLORS_SCHEME_FILE
-    ensure_user_colors_or_create(config_path)
-    update_user_colors_if_need(config_path)
-    with open(config_path, "r") as conf:
+    fpath = paths.colors
+    ensure_user_colors_or_create(fpath)
+    update_user_colors_if_need(fpath)
+    with open(fpath, "r") as conf:
         color_scheme = json.load(conf)
 
     return color_scheme
@@ -138,6 +138,7 @@ def add_user_color_scheme(
         roads=roads,
     )
 
-    config_path = Path(os.path.expanduser("~")) / MAPOC_USER_PATH / USER_COLORS_SCHEME_FILE
+    fpath = paths.colors
     current_color_schemes.update(new_scheme)
-    save_user_color_schemes(config_path=config_path, color_schemes=current_color_schemes)
+    save_user_color_schemes(config_path=fpath, color_schemes=current_color_schemes)
+
