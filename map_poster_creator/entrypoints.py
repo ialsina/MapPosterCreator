@@ -4,8 +4,14 @@ from pathlib import Path
 from pprint import pprint
 import webbrowser
 
-from map_poster_creator.color_schemes import base_color_scheme, get_color_schemes, add_user_color_scheme
 from map_poster_creator.main import create_poster
+from map_poster_creator.colorscheme import (
+    ColorScheme,
+    get_colorschemes,
+    get_available_colorschemes,
+    get_colorscheme, 
+    add_colorscheme,
+)
 from map_poster_creator import __version__
 
 logging.basicConfig(
@@ -35,7 +41,7 @@ def add_poster_create_subparser(parent_parser) -> argparse.ArgumentParser:
         '--colors', help=f'Provide colors. '
                          f'eq "--colors white black coral". '
                          f'Default: "white". '
-                         f'Available colors: {", ".join(base_color_scheme.keys())}',
+                         f'Available colors: {", ".join(get_available_colorschemes())}',
         default=["white"],
         nargs="+",
     )
@@ -133,7 +139,7 @@ def add_color_subparsers(parser_group) -> argparse.ArgumentParser:
 def process_color_service_call(args: argparse.Namespace) -> None:
     command = args.color_commands
     if command == "list":
-        pprint(get_color_schemes())
+        pprint(get_colorschemes())
 
     if command == "add":
         name = args.name
@@ -142,12 +148,14 @@ def process_color_service_call(args: argparse.Namespace) -> None:
         greens = args.greens
         roads = args.roads
 
-        add_user_color_scheme(
-            name=name,
-            facecolor=facecolor,
-            water=water,
-            greens=greens,
-            roads=roads
+        add_colorscheme(
+            name,
+            ColorScheme(
+                facecolor=facecolor,
+                water=water,
+                greens=greens,
+                roads=roads
+            )
         )
 
 

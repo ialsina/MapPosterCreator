@@ -4,7 +4,7 @@ from pathlib import Path
 from geopandas import GeoDataFrame
 from shapely.geometry import Polygon
 
-from map_poster_creator.color_schemes import get_color_schemes
+from map_poster_creator.colorscheme import ColorScheme
 from map_poster_creator.geojson import get_polygon_from_geojson, get_map_geometry_from_poly, MapGeometry
 from map_poster_creator.logs import log_processing, logging
 from map_poster_creator.plotting import plot_and_save
@@ -54,7 +54,7 @@ def preprocessing_other(poly: Polygon, dataframe: GeoDataFrame) -> GeoDataFrame:
 def create_poster(
         base_shp_path: Path,
         geojson_path: Path,
-        colors: Union[Mapping[str, str], Sequence[str]],
+        color: ColorScheme,
         layers: Sequence[str],
         config: dict,
         output_prefix: str,
@@ -67,18 +67,12 @@ def create_poster(
     roads_df = preprocessing_roads(poly=poly, roads=roads)
     water_df = preprocessing_other(poly=poly, dataframe=water)
     greens_df = preprocessing_other(poly=poly, dataframe=greens)
-    for color in colors:
-        if color not in get_color_schemes().keys():
-            logger.warning(f"Color {color} not found in base color scheme. "
-                           f"Available colors: {', '.join(get_color_schemes().keys())}")
-        print("")
-        print(f"Plot and Save {color} map")
-        plot_and_save(
-            roads=roads_df,
-            water=water_df,
-            greens=greens_df,
-            geometry=geometry,
-            path=f'{output_prefix}_{color}.png',
-            dpi=1200,
-            color=get_color_schemes()[color]
-        )
+    plot_and_save(
+        roads=roads_df,
+        water=water_df,
+        greens=greens_df,
+        geometry=geometry,
+        path=f'{output_prefix}_{color}.png',
+        dpi=1200,
+        cscheme=color,
+    )

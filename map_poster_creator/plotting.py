@@ -5,9 +5,9 @@ from geopandas import GeoDataFrame
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
+from map_poster_creator.colorscheme import Color, ColorScheme
 from map_poster_creator.geojson import MapGeometry
 from map_poster_creator.logs import log_processing
-
 
 def road_width(speed: int) -> float:
     if speed in range(0, 30):
@@ -20,22 +20,30 @@ def road_width(speed: int) -> float:
         return 0.3
     return 0.4
 
+@log_processing
+def plot_dataframe(ax: Axes, gdf: GeoDataFrame, **kwargs) -> None:
+    gdf.plot(ax=ax, **kwargs)
 
 def plot_and_save(
         roads: GeoDataFrame,
         water: GeoDataFrame,
         greens: GeoDataFrame,
-        color: dict,
+        cscheme: ColorScheme,
         geometry: MapGeometry,
         path: str,
         figsize: Optional[Tuple[float, float]] = (19, 19),
         dpi: Optional[int] = 300,
 ) -> None:
     plt.clf()
-    fig, ax = plt.subplots(figsize=figsize, facecolor=color['facecolor'])
-    plot_water(ax, color, water)
-    plot_greens(ax, color, greens)
-    plot_roads(ax, color, roads)
+    fig, ax = plt.subplots(figsize=figsize, facecolor=cscheme.facecolor.rgb)
+    plot_dataframe(ax=ax, gdf=water, color=cscheme.water.rgb, lw=0.1)
+    plot_dataframe(ax=ax, gdf=greens, color=cscheme.greens.rgb, lw=0.1)
+    plot_dataframe(
+        ax=ax,
+        gdf=roads,
+        color=cscheme.roads.rgb,
+        linewidth=[road_width(d) for d in roads.speeds],
+    )
     ax.set_aspect(
         1 / math.cos(math.pi / 180 * geometry.center[0])
     )
@@ -44,20 +52,3 @@ def plot_and_save(
     ax.set_axis_off()
     fig.savefig(path, bbox_inches='tight', dpi=dpi)
 
-@log_processing
-def plot_water(ax: Axes, color: dict, water: GeoDataFrame) -> None:
-    water.plot(ax=ax, color=color['water'], linewidth=0.1)
-
-
-@log_processing
-def plot_greens(ax: Axes, color: dict, greens: GeoDataFrame) -> None:
-    greens.plot(ax=ax, color=color['greens'], linewidth=0.1)
-
-
-@log_processing
-def plot_roads(ax: Axes, color: dict, roads: GeoDataFrame) -> None:
-    roads.plot(
-        ax=ax,
-        color=color['roads'],
-        linewidth=[road_width(d) for d in roads.speeds]
-    )
