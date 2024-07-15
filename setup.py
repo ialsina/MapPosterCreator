@@ -2,6 +2,9 @@ import setuptools
 
 from map_poster_creator import __version__, __author__, __author_email__
 
+with open("requirements.txt", "r", encoding="utf-8") as rf:
+    requirements = rf.read().splitlines()
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -20,6 +23,6 @@ setuptools.setup(
             'mapoc = map_poster_creator.entrypoints:map_poster',
         ],
     },
-    install_requires=open("requirements.txt").read().split(),
+    install_requires=requirements,
     python_requires='>=3.7',
 )
