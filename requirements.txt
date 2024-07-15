@@ -1,8 +1,10 @@
 colour
 descartes
+ete3
 geopandas
 shapely
 matplotlib
 pandas
 requests
+unidecode
 wget

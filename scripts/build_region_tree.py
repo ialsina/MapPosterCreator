@@ -1,10 +1,11 @@
-import json
 import requests
 from requests.adapters import HTTPAdapter
 from urllib.parse import urljoin
 from pprint import pprint
+from unidecode import unidecode
 
 from bs4 import BeautifulSoup
+from ete3 import TreeNode
 
 from map_poster_creator.config import paths
 
@@ -25,44 +26,56 @@ def get_pages_from_table(table):
             pages[a_tag.text] = a_tag.attrs.get("href")
     return pages
 
-def find_tree(session, url, region="", depth=1):
-    print(f"Navigating: {url}")
+def find_tree(session, url, region="", depth=1) -> TreeNode:
+    print(f"Navigating: {url:<100s}", end="\r")
 
     try:
         response = session.get(url)
         response.raise_for_status()
     except requests.RequestException as exc:
         print(f"Request failed: {exc}")
-        return dict(tree)
+        return TreeNode()
 
     soup = BeautifulSoup(response.text, "html.parser")
 
-    nodes = []
+    node = TreeNode(name=unidecode(region))
+    node.add_feature("url", url)
     for table in find_tables(soup):
         pages = get_pages_from_table(table)
         for name, href in pages.items():
             if href.endswith(".html"):
-                nodes.append(
-                    find_tree(session,
-                              urljoin(url, href),
-                              name,
-                              depth=depth+1,
-                              )
+                child_node = find_tree(
+                    session=session,
+                    url=urljoin(url, href),
+                    region=name,
+                    depth=depth+1,
                 )
+                if child_node:
+                    node.add_child(child_node)
             else:
-                nodes.append(urljoin(url, href))
-    return {region: nodes}
+                leaf_node = TreeNode(name=unidecode(name))
+                leaf_node.add_feature("url", urljoin(url, href))
+                node.add_child(leaf_node)
+    return node
 
-with requests.Session() as session:
-    session.mount("http://", HTTPAdapter(max_retries=3))
-    session.mount("https://", HTTPAdapter(max_retries=3))
-    tree = find_tree(session, URL)
+def _tree_to_json(node):
+    result = {"name": node.name}
+    if node.is_leaf():
+        result["url"] = node.url if "url" in node.features else ""
+    else:
+        result["children"] = [_tree_to_json(child) for child in node.get_children()]
+    return result
 
-with open(paths.geofabrik_tree, "w", encoding="utf-8") as wf:
-    json.dump(tree, wf)
+if __name__ == "__main__":
 
-with open(paths.geofabrik_tree.stem + ".txt", encoding="utf-8") as wf:
-    pprint(tree, stream=wf)
+    with requests.Session() as session:
+        session.mount("http://", HTTPAdapter(max_retries=3))
+        session.mount("https://", HTTPAdapter(max_retries=3))
+        root = find_tree(session, URL, "/")
 
+    if root:
+        root.write(format=1, features=["url"], outfile=paths.geofabrik_tree_nw)
 
+        with open(paths.geofabrik_tree_txt, "w", encoding="utf-8") as wf:
+            pprint(_tree_to_json(root), stream=wf)
 
