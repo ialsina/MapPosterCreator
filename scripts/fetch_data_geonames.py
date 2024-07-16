@@ -8,9 +8,9 @@ from map_poster_creator.config import paths
 
 DATA_URL = "https://download.geonames.org/export/dump/cities1000.zip"
 
-def ask_replace():
-    print(f"File {paths.cities_geonames_1000_txt} already exists.")
-    return input("Replace? [y/N]").lower() in {"y", "yes", "true", "1"}
+def ask_replace(file):
+    print(f"File {file} already exists.")
+    return input("Replace? [y/N] >").lower() in {"y", "yes", "true", "1"}
 
 def fetch_data():
     paths.cities_geonames_1000_zip.parent.mkdir(parents=True, exist_ok=True)
@@ -23,7 +23,6 @@ def fetch_data():
                 os.remove(fpath.parent / name)
         zf.extractall(fpath.parent)
 
-    os.remove(paths.cities_geonames_1000_zip)
 
     if len(namelist) == 1:
         shutil.move(
@@ -50,15 +49,26 @@ def get_header():
     return columns
 
 def read_cities_df():
-    return read_csv(paths.cities_geonames_1000_txt, sep="\t", names=get_header())
+    return read_csv(
+        paths.cities_geonames_1000_txt,
+        sep="\t",
+        names=get_header(),
+        low_memory=False
+    )
+
+def clean_data():
+    os.remove(paths.cities_geonames_1000_txt)
+    os.remove(paths.cities_geonames_1000_zip)
 
 
 if __name__ == "__main__":
-    if paths.cities_geonames_1000_txt.exists():
-        if ask_replace():
-            os.remove(paths.cities_geonames_1000_txt)
+    if paths.cities_geonames_1000_zip.exists():
+        if ask_replace(paths.cities_geonames_1000_zip):
+            os.remove(paths.cities_geonames_1000_zip)
             fetch_data()
     else:
         fetch_data()
     cities_df = read_cities_df()
+    cities_df.to_csv(paths.cities_geonames_1000, index=True)
+    clean_data()
 

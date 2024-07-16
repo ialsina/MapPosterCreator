@@ -180,7 +180,7 @@ def process_poster_service_call(args: argparse.Namespace) -> None:
         create_poster(
             base_shp_path=shp_path,
             geojson_path=geojson,
-            colors=colors,
+            color=colors,
             layers=[""],
             config={"none": None},
             output_prefix=output_prefix,
