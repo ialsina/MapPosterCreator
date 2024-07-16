@@ -5,7 +5,7 @@ from pprint import pprint
 import sys
 import webbrowser
 
-from map_poster_creator.main import create_poster
+from map_poster_creator.core import create_poster
 from map_poster_creator.colorscheme import (
     ColorScheme,
     get_colorschemes,
