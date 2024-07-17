@@ -80,7 +80,7 @@ region_centroids = get_region_centroids(region_polygons)
 print("Matching cities and polygons...")
 city_regions = defaultdict(list)
 city_distances = {}
-with tqdm(total=cities.size, leave=True) as pbar:
+with tqdm(total=cities.shape[0], leave=True) as pbar:
     for _, row in cities.iterrows():
         city = row["asciiname"]
         country = countries[
@@ -97,4 +97,4 @@ with tqdm(total=cities.size, leave=True) as pbar:
         pbar.update()
 
 with open("city_regions.json", "w", encoding="utf-8") as f:
-    /Type
+    json.dump(city_regions, f)
