@@ -11,6 +11,7 @@ class paths:
     cities_geonames_1000 = data_root / "cities_geonames_1000.csv"
     cities_geonames_1000_txt = data_root / "cities_geonames_1000.txt"
     cities_geonames_1000_zip = data_root / "cities_geonames_1000.zip"
+    dictionary_of_color_combinations = data_root / "docc_colors.json"
     geonames_headers = data_root / "geonames_headers.txt"
     geofabrik_tree_nw = data_root / "geofabrik_tree.nw"
     geofabrik_tree_txt = data_root / "geofabrik_tree.txt"
