@@ -12,7 +12,7 @@ from map_poster_creator.core import (
 )
 from map_poster_creator.data import (
     browser_get_geojson_path_interactive,
-    find_shp,
+    download_shp_interactive,
 )
 from map_poster_creator.colorscheme import (
     ColorScheme,
@@ -191,7 +191,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
         if geojson_path is None:
             geojson_path = browser_get_geojson_path_interactive(city_name)
         if shp_path is None:
-            shp_path = find_shp(city_name)
+            shp_path = download_shp_interactive(city_name)
 
     colors = args.colors
     output_prefix = args.output_prefix

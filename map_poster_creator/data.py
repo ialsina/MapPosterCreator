@@ -1,15 +1,26 @@
+from bs4 import BeautifulSoup, Tag
 from functools import lru_cache
-import platform
+import os
 import subprocess
 from pandas import DataFrame, Series, read_csv
-from tempfile import NamedTemporaryFile
+import platform
+from requests import Session
+from requests.adapters import HTTPAdapter
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Optional
 from unidecode import unidecode
+from urllib.parse import urljoin
 import webbrowser
+import wget
+from zipfile import ZipFile
 
 from map_poster_creator.config import paths
 
 GEOJSON_URL = "https://geojson.io/#map=10/{latitude}/{longitude}"
+GEOFABRIK_URL = "https://download.geofabrik.de"
+
+def is_valid_a_tag(a_tag: Tag) -> bool:
+    return a_tag.attrs["href"].endswith("latest-free.shp.zip")
 
 @lru_cache(maxsize=None)
 def get_city_df() -> DataFrame:
@@ -129,5 +140,55 @@ def browser_get_geojson_path_interactive(city: str, country: Optional[str] = Non
         _remove_hash_trailing_lines(tf)
         return filepath
 
-def find_shp(city: str, country: Optional[str] = None):
-    raise NotImplementedError
+
+def _find_shp_url(region_url: str) -> str:
+    with Session() as session:
+        session.mount("http://", HTTPAdapter(max_retries=3))
+        session.mount("https://", HTTPAdapter(max_retries=3))
+        response = session.get(region_url)
+        if response.status_code != 200:
+            raise IOError(
+                f"Could not fetch resource (status code: {response.status_code}): "
+                + str(region_url)
+            )
+        soup = BeautifulSoup(response.text, "html.parser")
+        for a_tag in soup.find_all("a", recursive=True):
+            if is_valid_a_tag(a_tag):
+                return urljoin(region_url, a_tag.attrs["href"])
+        raise ValueError(
+            f"Couldn't find a satisfying a tag in {region_url}."
+        )
+
+def download_shp_interactive(city: str, country: Optional[str] = None):
+    webbrowser.open_new_tab(GEOFABRIK_URL)
+    message = (
+        "# Please, navigate to the page of the region corresponding to the city of "
+        f"{city}{f', {country}' if country is not None else ''}.\n"
+        "# Then, paste the URL below\n\n\n"
+    )
+    with NamedTemporaryFile(mode="w+b", delete=False) as tf:
+        tf.write(message.encode("utf-8"))
+        tf.flush()
+        _open_text_editor(tf.name)
+        _remove_hash_trailing_lines(tf)
+        tf.seek(0)
+        region_url = tf.read().decode("utf-8").strip()
+        print(region_url)
+        shp_url = _find_shp_url(region_url)
+
+    tempdir = TemporaryDirectory()
+    tempdir.cleanup = False
+    tempdir_path = tempdir.name
+    print(tempdir)
+    wget.download(shp_url, out=tempdir_path)
+    zip_fpath = os.path.join(
+        tempdir_path,
+        os.listdir(tempdir_path)[0]
+    )
+    with ZipFile(zip_fpath, "r") as zf:
+        zf.extractall(path=tempdir_path)
+    os.remove(zip_fpath)
+    return tempdir_path
+
+if __name__ == "__main__":
+    download_shp_interactive("Barcelona")
