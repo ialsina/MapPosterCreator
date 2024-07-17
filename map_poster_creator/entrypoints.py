@@ -2,6 +2,7 @@ from argparse import ArgumentParser, Namespace
 import logging
 from pathlib import Path
 from pprint import pprint
+from typing import Callable, Tuple, Mapping
 import sys
 import webbrowser
 
@@ -31,19 +32,21 @@ def _add_poster_subparsers(parser_group) -> None:
         help='Poster creation',
     )
     poster_parser.add_argument(
-        "city",
+        "-c", "--city",
         default=None,
         action="store",
         required=False,
-        help="City to draw. Required if shp_path is not passed.",
+        help=(
+            "City to draw. Required if shp_path is not passed."
+        ),
         metavar="CITY",
     )
     poster_parser.add_argument(
-        '--shp-path',
+        "--shp-path",
         default=None,
         action="store",
         required=False,
-        help='Path to shp folder. Type "mapoc misc shp" to download.',
+        help='Path to shp folder. Type "mapoc browse shp" to download.',
         metavar="SHP_PATH",
     )
     poster_parser.add_argument(
@@ -53,17 +56,16 @@ def _add_poster_subparsers(parser_group) -> None:
         required=False,
         help=(
             'Path to geojson file with boundary polygon. '
-            'Type "mapoc misc geojson" to create and download.'
+            'Type "mapoc browse geojson" to create and download.'
         ),
         metavar="GEOJSON_PATH",
     )
     poster_parser.add_argument(
         '--colors',
         help=(
-            f'Provide colors. '
-            f'eq "--colors white black coral". '
+            f'Provide one or several color schemes.'
             f'Default: "white". '
-            f'Available colors: {", ".join(get_available_colorschemes())}'
+            f'Type "mapoc color list" to see a list of available colors.'
         ),
         default=["white"],
         nargs="+",
@@ -83,23 +85,23 @@ def _add_color_add_subparser(parent_parser) -> None:
     color_parser.add_argument('--greens', help='MatPlot greens hex color. eq. "#ffffff"', required=True)
     color_parser.add_argument('--roads', help='MatPlot roads hex color. eq. "#ffffff"', required=True)
 
-def _add_misc_subparsers(parser_group) -> None:
-    misc_commands_parser = parser_group.add_parser(
-        'misc',
-        description='Misc services',
-        help='Misc services',
+def _add_browse_subparsers(parser_group) -> None:
+    browse_commands_parser = parser_group.add_parser(
+        'browse',
+        description='browse services',
+        help='browse services',
     )
-    misc_commands_parser_group = misc_commands_parser.add_subparsers(
-        title='misc management commands',
-        description='misc',
+    browse_commands_parser_group = browse_commands_parser.add_subparsers(
+        title='browse management commands',
+        description='browse',
         help='Additional help for available commands',
-        dest='misc_commands',
+        dest='browse_commands',
     )
-    misc_commands_parser_group.add_parser(
+    browse_commands_parser_group.add_parser(
         'shp',
         description='Shp download',
     )
-    misc_commands_parser_group.add_parser(
+    browse_commands_parser_group.add_parser(
         'geojson',
         description='Create geoJSON',
     )
@@ -122,24 +124,11 @@ def _add_color_subparsers(parser_group) -> None:
         description="List available colors",
     )
 
-def get_parser() -> ArgumentParser:
-    parser = ArgumentParser(
-        prog='mapoc',
-        description="Map Poster Creator"
-    )
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + str(__version__))
-    poster_creator_services_parser_group = parser.add_subparsers(
-        title='Available Map Poster services',
-        description='Services that Map Poster provides.',
-        help='Additional help for available services',
-        dest='map_poster_services',
-    )
-    _add_poster_subparsers(poster_creator_services_parser_group)
-    _add_misc_subparsers(poster_creator_services_parser_group)
-    _add_color_subparsers(poster_creator_services_parser_group)
-    return parser
 
-def process_color_service_call(args: Namespace) -> None:
+def _color_service(
+        args: Namespace,
+        print_help: Callable,
+    ) -> None:
     command = args.color_commands
     if command == "list":
         pprint(get_colorschemes())
@@ -153,31 +142,30 @@ def process_color_service_call(args: Namespace) -> None:
                 roads=args.roads,
             )
         )
+    else:
+        print_help()
 
-def process_misc_service_call(args: Namespace) -> None:
-    command = args.misc_commands
+def _browse_service(
+        args: Namespace,
+        print_help: Callable
+    ) -> None:
+    command = args.browse_commands
     if command == 'shp':
         webbrowser.open_new_tab("https://download.geofabrik.de/")
     elif command == "geojson":
         webbrowser.open_new_tab("https://geojson.io/")
+    else:
+        print_help()
 
-def get_shp_path(city: str) -> Path:
-    raise NotImplementedError
-
-def get_geojson_path(city: str) -> Path:
-    raise NotImplementedError
-
-def process_poster_service_call(args: Namespace) -> None:
+def _poster_service(args: Namespace, print_help: Callable) -> None:
     city_name = args.city
     shp_path = args.shp_path
     geojson_path = args.geojson_path
 
     if city_name is None:
         if shp_path is None or geojson_path is None:
-            raise ValueError(
-                "Please, pass either a city or "
-                "SHP and geojson file paths."
-            )
+            print_help()
+            return
     else:
         if geojson_path is None:
             geojson_path = browser_get_geojson_path(city_name)
@@ -195,24 +183,44 @@ def process_poster_service_call(args: Namespace) -> None:
     )
     return
 
+_AVAILABLE_SERVICES = {
+    'poster': _poster_service,
+    'browse': _browse_service,
+    'color': _color_service,
+}
+
+def get_parser() -> Tuple[ArgumentParser, Mapping[str, Callable]]:
+    parser = ArgumentParser(
+        prog='mapoc',
+        description="Map Poster Creator"
+    )
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + str(__version__))
+    subparsers = parser.add_subparsers(
+        title='Available Map Poster services',
+        description='Services that Map Poster provides.',
+        help='Additional help for available services',
+        dest='map_poster_services',
+    )
+    _add_poster_subparsers(subparsers)
+    _add_browse_subparsers(subparsers)
+    _add_color_subparsers(subparsers)
+    return parser, {
+        choice: subparser.print_help
+        for choice, subparser in subparsers.choices.items()
+    }
+
 def map_poster(argv=None) -> None:
     if argv is None:
         argv = sys.argv[1:]
 
-    parser = get_parser()
+    parser, help_dict = get_parser()
     args = parser.parse_args(argv)
 
     service = args.map_poster_services
-    available_services = {
-        'poster': process_poster_service_call,
-        'misc': process_misc_service_call,
-        'color': process_color_service_call,
-    }
     if not service:
         parser.print_help()
-        parser.print_usage()
         return
-    available_services[service](args)
+    _AVAILABLE_SERVICES[service](args, help_dict[service])
 
 
 if __name__ == '__main__':
