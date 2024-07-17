@@ -1,7 +1,8 @@
 from argparse import ArgumentParser, Namespace
 import logging
+from pandas import DataFrame
 from pathlib import Path
-from pprint import pprint
+from tabulate import tabulate
 from typing import Callable, Tuple, Mapping
 import sys
 import webbrowser
@@ -24,6 +25,18 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+def _to_fwf(df, tablefmt="plain"):
+    content = [
+        [tup[0]] + tup[1]
+        for tup in zip(df.index.tolist(), df.values.tolist())
+    ]
+    content = tabulate(
+        content,
+        [""] + list(df.columns),
+        tablefmt=tablefmt
+    )
+    return content
 
 def _add_poster_subparsers(parser_group) -> None:
     poster_parser = parser_group.add_parser(
@@ -131,7 +144,13 @@ def _color_service(
     ) -> None:
     command = args.color_commands
     if command == "list":
-        pprint(get_colorschemes())
+        print(_to_fwf(
+            DataFrame.from_dict({
+                name: scheme.to_json()
+                for name, scheme in get_colorschemes().items()
+            }, orient="index"),
+            tablefmt="fancy_grid"
+        ))
     elif command == "add":
         add_colorscheme(
             args.name,

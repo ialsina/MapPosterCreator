@@ -6,5 +6,6 @@ shapely
 matplotlib
 pandas
 requests
+tabulate
 unidecode
 wget

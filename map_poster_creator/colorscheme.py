@@ -46,6 +46,8 @@ class ColorScheme:
         self.greens = self._make_color(greens or facecolor)
         self.roads = self._make_color(roads or facecolor)
 
+    def to_json(self):
+        return {key: str(color.hex) for key, color in asdict(self).items()}
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -53,7 +55,7 @@ class JSONEncoder(json.JSONEncoder):
         if isinstance(o, Color):
             return o.hex
         elif isinstance(o, ColorScheme):
-            return {"__ColorScheme__": asdict(o)}
+            return {"__ColorScheme__": o.to_json()}
         return super().default(o)
 
 def object_hook(obj):
