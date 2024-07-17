@@ -5,12 +5,15 @@ from pprint import pprint
 import sys
 import webbrowser
 
-from map_poster_creator.core import create_poster
+from map_poster_creator.core import (
+    create_poster,
+    browser_get_geojson_path,
+    find_shp,
+)
 from map_poster_creator.colorscheme import (
     ColorScheme,
     get_colorschemes,
     get_available_colorschemes,
-    get_colorscheme, 
     add_colorscheme,
 )
 from map_poster_creator import __version__
@@ -21,52 +24,56 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
-def _add_poster_create_subparser(parent_parser) -> None:
-    poster_create_parser = parent_parser.add_parser(
-        'create',
-        description='Make Poster',
+def _add_poster_subparsers(parser_group) -> None:
+    poster_parser = parser_group.add_parser(
+        'poster',
+        description='Create Map Poster',
+        help='Poster creation',
     )
-    poster_create_parser.add_argument(
-        '--shp_path',
+    poster_parser.add_argument(
+        "city",
+        default=None,
+        action="store",
+        required=False,
+        help="City to draw. Required if shp_path is not passed.",
+        metavar="CITY",
+    )
+    poster_parser.add_argument(
+        '--shp-path',
+        default=None,
+        action="store",
+        required=False,
         help='Path to shp folder. Type "mapoc misc shp" to download.',
-        required=True
+        metavar="SHP_PATH",
     )
-    poster_create_parser.add_argument(
-        '--geojson',
+    poster_parser.add_argument(
+        '--geojson-path',
+        default=None,
+        action="store",
+        required=False,
         help=(
             'Path to geojson file with boundary polygon. '
             'Type "mapoc misc geojson" to create and download.'
         ),
-        required=True,
+        metavar="GEOJSON_PATH",
     )
-    poster_create_parser.add_argument(
-        '--colors', help=f'Provide colors. '
-                         f'eq "--colors white black coral". '
-                         f'Default: "white". '
-                         f'Available colors: {", ".join(get_available_colorschemes())}',
+    poster_parser.add_argument(
+        '--colors',
+        help=(
+            f'Provide colors. '
+            f'eq "--colors white black coral". '
+            f'Default: "white". '
+            f'Available colors: {", ".join(get_available_colorschemes())}'
+        ),
         default=["white"],
         nargs="+",
     )
-    poster_create_parser.add_argument(
+    poster_parser.add_argument(
         '--output_prefix',
         help='Output file prefix. eq. "{OUTPUT_PREFIX}_{COLOR}.png". Default: "map"',
         type=str,
         default="map"
     )
-
-def _add_poster_subparsers(parser_group) -> None:
-    poster_commands_parser = parser_group.add_parser(
-        'poster',
-        description='Create Map Poster',
-        help='Poster creation',
-    )
-    poster_commands_parser_group = poster_commands_parser.add_subparsers(
-        title='poster management commands',
-        description='Create poster',
-        help='Additional help for available commands',
-        dest='poster_commands',
-    )
-    _add_poster_create_subparser(poster_commands_parser_group)
 
 def _add_color_add_subparser(parent_parser) -> None:
     color_parser = parent_parser.add_parser('add', description="List available colors")
@@ -154,21 +161,39 @@ def process_misc_service_call(args: Namespace) -> None:
     elif command == "geojson":
         webbrowser.open_new_tab("https://geojson.io/")
 
+def get_shp_path(city: str) -> Path:
+    raise NotImplementedError
+
+def get_geojson_path(city: str) -> Path:
+    raise NotImplementedError
+
 def process_poster_service_call(args: Namespace) -> None:
-    command = args.poster_commands
-    shp_path = Path(args.shp_path)
-    geojson = Path(args.geojson)
+    city_name = args.city
+    shp_path = args.shp_path
+    geojson_path = args.geojson_path
+
+    if city_name is None:
+        if shp_path is None or geojson_path is None:
+            raise ValueError(
+                "Please, pass either a city or "
+                "SHP and geojson file paths."
+            )
+    else:
+        if geojson_path is None:
+            geojson_path = browser_get_geojson_path(city_name)
+        if shp_path is None:
+            shp_path = find_shp(city_name)
+
     colors = args.colors
     output_prefix = args.output_prefix
 
-    if command == 'create':
-        create_poster(
-            base_shp_path=shp_path,
-            geojson_path=geojson,
-            color=colors,
-            output_prefix=output_prefix,
-        )
-        return
+    create_poster(
+        shp_dir=shp_path,
+        geojson_path=geojson_path,
+        color=colors,
+        output_prefix=output_prefix,
+    )
+    return
 
 def map_poster(argv=None) -> None:
     if argv is None:

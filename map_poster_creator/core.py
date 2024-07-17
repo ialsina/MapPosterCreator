@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Sequence, Mapping, Union
+from typing import Tuple, Sequence, Optional
 from pathlib import Path
 
 from geopandas import GeoDataFrame
@@ -42,6 +42,12 @@ def _preprocessing_roads(poly: Polygon, gdf: GeoDataFrame) -> GeoDataFrame:
     town['speeds'] = [speed for speed in town['maxspeed']]
     return town
 
+def browser_get_geojson_path(city: str, country: Optional[str] = None):
+    raise NotImplementedError
+
+def find_shp(city: str, country: Optional[str] = None):
+    raise NotImplementedError
+
 def create_poster(
         shp_dir: Path,
         geojson_path: Path,
@@ -61,7 +67,6 @@ def create_poster(
         poly=poly,
         gdf=GeoDataFrame.from_file(shp_dir / shp_filename.greens, encoding="utf-8")
     )
-
     plot_and_save(
         roads=roads,
         water=water,
