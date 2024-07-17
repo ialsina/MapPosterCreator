@@ -6,14 +6,20 @@ import platform
 from requests import Session
 from requests.adapters import HTTPAdapter
 from tempfile import NamedTemporaryFile
-from typing import Optional
+from typing import Optional, Sequence, Mapping, Iterable
 from urllib.parse import urljoin
 import webbrowser
 import wget
 from zipfile import ZipFile
 
 from bs4 import BeautifulSoup, Tag
+from ete3 import Tree
+from geopandas import GeoDataFrame
+from shapely.geometry import Point, Polygon
 from pandas import DataFrame, Series, read_csv
+from tqdm import tqdm
+from unidecode import unidecode
+
 from map_poster_creator.config import paths
 from unidecode import unidecode
 
@@ -42,6 +48,84 @@ def get_country_df() -> DataFrame:
             "Could not find country data. Please download using the appropriate script."
         )
     return read_csv(paths.countries)
+
+@lru_cache(maxsize=None)
+def get_regions_tree() -> Tree:
+    return Tree(str(paths.geofabrik_tree_nw), format=1)
+
+def _parse_polygons(data: str) -> Sequence[Polygon]:
+    polygons = []
+    current_polygon = []
+
+    for line in data.strip().split("_"):
+        line = line.strip()
+        if line == "END":
+            if current_polygon:
+                polygons.append(Polygon(current_polygon))
+            current_polygon = []
+        elif line.replace("-", "").isalpha():
+            continue
+        elif line.isdigit():
+            continue
+        else:
+            coords = list(map(float, line.split()))
+            current_polygon.append(coords)
+    return polygons
+
+def _is_point_in_polygon(point: Point, polygon: Polygon) -> bool:
+    polygon_gdf = GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[polygon])
+    point_gdf = GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[point])
+    return bool(polygon_gdf.contains(
+        point_gdf.loc[0, 'geometry']
+    )[0])
+
+@lru_cache
+def find_country_regions(
+        country: str,
+    ) -> Iterable[str]:
+    tree = get_regions_tree()
+    tree_iter = tree.traverse()
+    if tree_iter is None:
+        return iter([])
+    for node in tree_iter:
+        if node.name == country:
+            node_iter = node.traverse()
+            if node_iter is None:
+                return iter([])
+            return (child.name for child in node_iter)
+    return iter([])
+
+@lru_cache
+def find_country_subtree(
+        country_or_region: str
+    ) -> Tree:
+    tree = get_regions_tree()
+    tree_iter = tree.traverse()
+    if tree_iter is None:
+        return Tree()
+    for node in tree_iter:
+        if node.name == country_or_region:
+            return node
+    return Tree()
+
+@lru_cache(maxsize=None)
+def get_region_polygons(node: Tree):
+    if "polygon" not in node.features:
+        return []
+    try:
+        return _parse_polygons(node.polygon)
+    except ValueError as exc:
+        return []
+
+@lru_cache(maxsize=None)
+def get_all_region_polygons(tree: Tree) -> Mapping[str, Sequence[Polygon]]:
+    polygons = {}
+    tree_iter = tree.traverse()
+    if tree_iter is None:
+        return {}
+    for node in tree_iter:
+        polygons[node.name] = get_region_polygons(node)
+    return polygons
 
 def _interactive_resolve(df: DataFrame) -> Series:
     def row_txt(row):
@@ -142,7 +226,6 @@ def browser_get_geojson_path_interactive(city: str, country: Optional[str] = Non
         _remove_hash_trailing_lines(tf)
     return Path(filepath)
 
-
 def _find_shp_url(region_url: str) -> str:
     with Session() as session:
         session.mount("http://", HTTPAdapter(max_retries=3))
@@ -200,5 +283,32 @@ def download_shp_interactive(city: str, country: Optional[str] = None) -> Path:
     extract_dir = _download_extract_shp(shp_url)
     return extract_dir
 
-if __name__ == "__main__":
-    download_shp_interactive("Barcelona")
+def find_shp(city: str, country: Optional[str] = None):
+    countries = get_country_df()
+    city_series = resolve_city(city=city, country=country)
+    if city_series is None:
+        raise ValueError(
+            f'City "{city}" '
+            + (f'and country "{country}" ' if country is not None else '')
+            + "did not give any results."
+        )
+    city_point = Point(city_series["longitude"], city_series["latitude"])
+    # TODO Translation between countries in both dfs.
+    city_country = countries[
+        countries["Code"] == city_series["country code"]
+    ].iloc[0]["Name"]
+    city_regions = []
+    country_subtree = find_country_subtree(city_country)
+    print(country_subtree)
+    if country_subtree is None:
+        return None
+    for region in country_subtree.traverse():
+        print("---> Testing:", region.name)
+        if any(
+            _is_point_in_polygon(city_point, polygon)
+            for polygon in get_region_polygons(region)
+        ):
+            print("-------> positive:", region.name)
+            city_regions.append(region)
+    print(city_regions)
+
