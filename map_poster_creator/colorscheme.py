@@ -1,16 +1,16 @@
 from dataclasses import dataclass, field, asdict
 import json
 import logging
-from pathlib import Path
-from typing import Union, Tuple, Sequence, Mapping, Optional
+from typing import Mapping
 
 from colour import Color
-from matplotlib import colors
+from matplotlib.colors import get_named_colors_mapping
 
 from map_poster_creator.config import paths
 
 logger = logging.getLogger(__name__)
 _CONFIG_COLORSCHEME_PATH = paths.colors
+_MATPLOTLIB_COLORS = get_named_colors_mapping()
 
 @dataclass
 class ColorScheme:
@@ -29,7 +29,9 @@ class ColorScheme:
         if arg is None:
             return Color("#000000")
         if isinstance(arg, str):
-            return Color(arg)
+            if arg.startswith("#"):
+                return Color(arg)
+            return Color(_MATPLOTLIB_COLORS[arg])
         if isinstance(arg, (list, tuple)):
             if not all(isinstance(element, (int, float)) for element in arg):
                 raise _type_error
