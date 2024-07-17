@@ -46,10 +46,7 @@ def create_poster(
         shp_dir: Path,
         geojson_path: Path,
         color: ColorScheme,
-        layers: Sequence[str],
-        config: dict,
         output_prefix: str,
-        user_color_scheme: bool = False,
 ):
     poly, geometry = _get_boundary_shape(geojson=geojson_path)
     roads = _preprocessing_roads(

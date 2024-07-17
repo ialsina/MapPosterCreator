@@ -166,8 +166,6 @@ def process_poster_service_call(args: Namespace) -> None:
             base_shp_path=shp_path,
             geojson_path=geojson,
             color=colors,
-            layers=[""],
-            config={"none": None},
             output_prefix=output_prefix,
         )
         return
