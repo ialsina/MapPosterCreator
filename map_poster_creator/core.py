@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from typing import Tuple, Sequence, Optional
 from pathlib import Path
 
@@ -6,7 +7,11 @@ from geopandas import GeoDataFrame
 from shapely.geometry import Polygon
 
 from map_poster_creator.colorscheme import ColorScheme
-from map_poster_creator.geojson import get_polygon_from_geojson, get_map_geometry_from_poly, MapGeometry
+from map_poster_creator.geojson import (
+    get_polygon_from_geojson,
+    get_map_geometry_from_poly,
+    MapGeometry
+)
 from map_poster_creator.logs import log_processing, logging
 from map_poster_creator.plotting import plot_and_save
 
@@ -41,12 +46,6 @@ def _preprocessing_roads(poly: Polygon, gdf: GeoDataFrame) -> GeoDataFrame:
     town = town[~town.fclass.isin(['footway', "steps"])]
     town['speeds'] = [speed for speed in town['maxspeed']]
     return town
-
-def browser_get_geojson_path(city: str, country: Optional[str] = None):
-    raise NotImplementedError
-
-def find_shp(city: str, country: Optional[str] = None):
-    raise NotImplementedError
 
 def create_poster(
         shp_dir: Path,

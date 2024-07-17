@@ -9,7 +9,9 @@ import webbrowser
 
 from map_poster_creator.core import (
     create_poster,
-    browser_get_geojson_path,
+)
+from map_poster_creator.data import (
+    browser_get_geojson_path_interactive,
     find_shp,
 )
 from map_poster_creator.colorscheme import (
@@ -187,7 +189,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             return
     else:
         if geojson_path is None:
-            geojson_path = browser_get_geojson_path(city_name)
+            geojson_path = browser_get_geojson_path_interactive(city_name)
         if shp_path is None:
             shp_path = find_shp(city_name)
 
