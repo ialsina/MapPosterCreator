@@ -49,14 +49,12 @@ def _add_poster_subparsers(parser_group) -> None:
         help='Poster creation',
     )
     poster_parser.add_argument(
-        "-c", "--city",
-        default=None,
         action="store",
-        required=False,
         help=(
             "City to draw. Required if shp_path is not passed."
         ),
         metavar="CITY",
+        dest="city"
     )
     poster_parser.add_argument(
         "-w", "--width",
