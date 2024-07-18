@@ -12,6 +12,7 @@ with (
     session.mount("http://", HTTPAdapter(max_retries=3))
     session.mount("https://", HTTPAdapter(max_retries=3))
     response = session.get(DATA_URL)
+    response.encoding = response.apparent_encoding
     if response.status_code == 200:
         wf.write(response.text)
     else:

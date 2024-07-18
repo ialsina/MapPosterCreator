@@ -19,6 +19,7 @@ with (
     session.mount("https://", HTTPAdapter(max_retries=3))
     response = session.get(DATA_URL, timeout=30)
     response.raise_for_status()
+    response.encoding = response.apparent_encoding
     colors_json = json.loads(response.text)
 
 docc_colors = {}

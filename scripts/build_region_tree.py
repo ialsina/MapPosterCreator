@@ -52,11 +52,11 @@ def find_tree(session) -> Tuple[TreeNode, UrlsType]:
         print(_get_description(url, region), end="\r")
 
         response = session.get(url)
+        response.encoding = response.apparent_encoding
         if response.status_code != 200:
             print(f"Request failed: {url}", end="\r")
             return TreeNode()
 
-        response.encoding = response.apparent_encoding
         soup = BeautifulSoup(response.text, "html.parser")
 
         node = TreeNode(name=unidecode(region))
@@ -101,6 +101,7 @@ def fetch_polygons(
                 )
                 response = session.get(poly_url)
                 response.raise_for_status()
+                response.encoding = response.apparent_encoding
                 node.add_feature("polygon", response.text)
             except (StopIteration, KeyError, RequestException):
                 print(f"Couldn't fetch polygon for {node_name}")
