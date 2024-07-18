@@ -20,6 +20,7 @@ from map_poster_creator.colorscheme import (
 from map_poster_creator.data import (
     browser_get_geojson_path_interactive,
     download_shp_interactive,
+    find_download_shp,
 )
 from map_poster_creator import __version__
 
@@ -205,9 +206,14 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 city=city_name, country=country_name,
             )
         if shp_path is None:
-            shp_path = download_shp_interactive(
-                city=city_name, country=country_name
-            )
+            try:
+                shp_path = find_download_shp(
+                    city=city_name, country=country_name
+                )
+            except (ValueError, NotImplementedError):
+                shp_path = download_shp_interactive(
+                    city=city_name, country=country_name
+                )
 
     if output_prefix is None:
         output_prefix = city_name

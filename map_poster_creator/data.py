@@ -1,8 +1,11 @@
 from functools import lru_cache
+import json
 import os
 import subprocess
 from pathlib import Path
 import platform
+from pprint import pprint
+from matplotlib import interactive
 from requests import Session
 from requests.adapters import HTTPAdapter
 from tempfile import NamedTemporaryFile
@@ -23,11 +26,16 @@ from unidecode import unidecode
 from map_poster_creator.config import paths
 from unidecode import unidecode
 
+
 GEOJSON_URL = "https://geojson.io/#map=10/{latitude}/{longitude}"
 GEOFABRIK_URL = "https://download.geofabrik.de"
+GEOFABRIK_HREF_ATTRIBUTE_END = "latest-free.shp.zip"
+
+def is_valid_download_url(url: str) -> bool:
+    return url.endswith(GEOFABRIK_HREF_ATTRIBUTE_END)
 
 def is_valid_a_tag(a_tag: Tag) -> bool:
-    return a_tag.attrs["href"].endswith("latest-free.shp.zip")
+    return is_valid_download_url(a_tag.attrs["href"])
 
 @lru_cache(maxsize=None)
 def get_city_df() -> DataFrame:
@@ -52,6 +60,11 @@ def get_country_df() -> DataFrame:
 @lru_cache(maxsize=None)
 def get_regions_tree() -> Tree:
     return Tree(str(paths.geofabrik_tree_nw), format=1)
+
+@lru_cache(maxsize=None)
+def get_geofabrik_urls() -> Mapping[str, str]:
+    with open(paths.geofabrik_urls, "r", encoding="utf-8") as rf:
+        return json.load(rf)
 
 def _parse_polygons(data: str) -> Sequence[Polygon]:
     polygons = []
@@ -118,14 +131,26 @@ def get_region_polygons(node: Tree):
         return []
 
 @lru_cache(maxsize=None)
-def get_all_region_polygons(tree: Tree) -> Mapping[str, Sequence[Polygon]]:
+def get_all_region_polygons(only_leaf: bool = False) -> Mapping[str, Sequence[Polygon]]:
     polygons = {}
-    tree_iter = tree.traverse()
+    tree_iter = get_regions_tree().traverse()
     if tree_iter is None:
         return {}
     for node in tree_iter:
-        polygons[node.name] = get_region_polygons(node)
+        if only_leaf and not node.is_leaf():
+            continue
+        polygons[node] = get_region_polygons(node)
     return polygons
+
+@lru_cache(maxsize=None)
+def get_region_centroids(only_leaf: bool = False) -> Mapping[str, Sequence[Point]]:
+    polygons = get_all_region_polygons(only_leaf)
+    centroids = {}
+    for node, polygon_lst in polygons.items():
+        centroids[node] = [
+            polygon.centroid for polygon in polygon_lst
+        ]
+    return centroids
 
 def _interactive_resolve(df: DataFrame) -> Series:
     def row_txt(row):
@@ -135,7 +160,9 @@ def _interactive_resolve(df: DataFrame) -> Series:
         return f"{row['name']} ({country_name})"
     countries = get_country_df()
     choices = {i: row for i, (_, row) in enumerate(df.iterrows(), start=1)}
-    print("\t" + "\n\t".join(f"{i}. {row_txt(row)}" for i, row in choices.items()))
+    print("\t" + "\n\t".join(
+        f"{i}. {row_txt(row)}" for i, row in choices.items()
+    ))
     while True:
         user_input = input("\tSelect choice [1] >")
         if user_input == "":
@@ -231,6 +258,7 @@ def _find_shp_url(region_url: str) -> str:
         session.mount("http://", HTTPAdapter(max_retries=3))
         session.mount("https://", HTTPAdapter(max_retries=3))
         response = session.get(region_url)
+        response.encoding = response.apparent_encoding
         if response.status_code != 200:
             raise IOError(
                 f"Could not fetch resource (status code: {response.status_code}): "
@@ -283,8 +311,37 @@ def download_shp_interactive(city: str, country: Optional[str] = None) -> Path:
     extract_dir = _download_extract_shp(shp_url)
     return extract_dir
 
-def find_shp(city: str, country: Optional[str] = None):
-    countries = get_country_df()
+def _extract_shp_url(node: Tree):
+    geofabrik_urls = get_geofabrik_urls()
+    for url in geofabrik_urls[node.name]:
+        if is_valid_download_url(url):
+            return url
+    raise ValueError(
+        f"Couldn't find a satisfying a tag for {node.name}."
+    )
+
+def _interactive_region_choose(sorted_distances, num_choices=5) -> Tree:
+    top_regions = list(zip(*sorted_distances))[0][:num_choices]
+    choices = {i: region for i, region in enumerate(top_regions, start=1)}
+    print("\t" + "\n\t".join(
+        f"{i}. {node.name}" for i, node in choices.items())
+    )
+    while True:
+        user_input = input("\tSelect choice [1] >")
+        if user_input == "":
+            return choices[1]
+        try:
+            user_input = int(user_input)
+            if user_input in choices:
+                return choices[user_input]
+        except ValueError:
+            pass
+
+def find_download_shp(
+        city: str,
+        country: Optional[str] = None,
+        interactive: Optional[bool] = False
+    ):
     city_series = resolve_city(city=city, country=country)
     if city_series is None:
         raise ValueError(
@@ -292,23 +349,26 @@ def find_shp(city: str, country: Optional[str] = None):
             + (f'and country "{country}" ' if country is not None else '')
             + "did not give any results."
         )
-    city_point = Point(city_series["longitude"], city_series["latitude"])
-    # TODO Translation between countries in both dfs.
-    city_country = countries[
-        countries["Code"] == city_series["country code"]
-    ].iloc[0]["Name"]
-    city_regions = []
-    country_subtree = find_country_subtree(city_country)
-    print(country_subtree)
-    if country_subtree is None:
-        return None
-    for region in country_subtree.traverse():
-        print("---> Testing:", region.name)
-        if any(
-            _is_point_in_polygon(city_point, polygon)
-            for polygon in get_region_polygons(region)
-        ):
-            print("-------> positive:", region.name)
-            city_regions.append(region)
-    print(city_regions)
+    city_point = Point(
+        float(city_series["longitude"]),
+        float(city_series["latitude"]),
+    )
+    distances = []
+    for region_node, region_centroid_lst in get_region_centroids(only_leaf=True).items():
+        try:
+            distance = min(
+                city_point.distance(region_centroid)
+                for region_centroid in region_centroid_lst
+            )
+            distances.append((region_node, distance))
+        except ValueError:
+            continue
+    sorted_distances = sorted(distances, key=lambda x: x[1], reverse=False)
+    region_node = (
+        _interactive_region_choose(sorted_distances)
+        if interactive else
+        sorted_distances[0][0]
+    )
+    shp_url = _extract_shp_url(region_node)
+    return _download_extract_shp(shp_url)
 
