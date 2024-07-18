@@ -7,7 +7,7 @@ from typing import Callable, Tuple, Mapping, Sequence
 import sys
 import webbrowser
 
-from map_poster_creator.config import paths
+from map_poster_creator.config import paths, config
 from map_poster_creator.core import (
     create_poster,
 )
@@ -59,6 +59,29 @@ def _add_poster_subparsers(parser_group) -> None:
         metavar="CITY",
     )
     poster_parser.add_argument(
+        "-w", "--width",
+        default=config.default_width,
+        required=False,
+        action="store",
+        help=(
+            "Width of the figure, with units (cm, in, px). "
+            "If units are not passed, it defaults to cm."
+        ),
+        type=str,
+        metavar="WIDTH",
+    )
+    poster_parser.add_argument(
+        "-d", "--dpi",
+        default=config.default_dpi,
+        required=False,
+        action="store",
+        help=(
+            "Dots per inch (dpi) of the figure."
+        ),
+        type=int,
+        metavar="DPI",
+    )
+    poster_parser.add_argument(
         "--shp-path",
         default=None,
         action="store",
@@ -88,10 +111,13 @@ def _add_poster_subparsers(parser_group) -> None:
         nargs="+",
     )
     poster_parser.add_argument(
-        '--output_prefix',
-        help='Output file prefix. eq. "{OUTPUT_PREFIX}_{COLOR}.png". Default: "map"',
+        '--output-prefix',
+        help=(
+            "Output filename prefix."
+        ),
+        required=False,
         type=str,
-        default="map"
+        default=None
     )
 
 def _add_color_add_subparser(parent_parser) -> None:
@@ -180,6 +206,26 @@ def _browse_service(
     else:
         print_help()
 
+def _size_to_inches(size_units: str) -> int:
+    if size_units.isnumeric():
+        return float(size_units) * 0.3937008
+    if size_units.endswith("cm"):
+        size = size_units.strip("cm").strip()
+        return float(size) * 0.3937008
+    if size_units.endswith("in"):
+        size = size_units.strip("in").strip()
+        return float(size)
+    if size_units.endswith("px"):
+        raise NotImplementedError(
+            "px unit not yet implemented. "
+            "Please, pass size in cm or in, and pass argument dpi."
+        )
+    else:
+        raise ValueError(
+            f"Unknown unit type in {size_units}. "
+            "The supported units are 'cm', 'in', and 'px'."
+        )
+
 def _split_city_country(city_country_str: str | None) -> Tuple[str | None, str | None]:
     if city_country_str is None:
         return (None, None)
@@ -195,6 +241,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
     colors: Sequence[str] = args.colors
     output_prefix: str | None = args.output_prefix
     output_dir: Path = paths.output_dir
+    width_in = _size_to_inches(args.width)
 
     if city_name is None:
         if shp_path is None or geojson_path is None:
@@ -228,6 +275,8 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 shp_dir=Path(shp_path),
                 geojson_path=Path(geojson_path),
                 color=get_colorscheme(cscheme_name),
+                width=width_in,
+                dpi=args.dpi,
                 output=fpath,
             )
         except KeyError:

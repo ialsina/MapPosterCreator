@@ -51,6 +51,8 @@ def create_poster(
         shp_dir: Path,
         geojson_path: Path,
         color: ColorScheme,
+        width: int,
+        dpi: int,
         output: Path,
 ):
     poly, geometry = _get_boundary_shape(geojson=geojson_path)
@@ -72,7 +74,8 @@ def create_poster(
         greens=greens,
         geometry=geometry,
         path=output,
-        dpi=1200,
+        dpi=dpi,
+        width=width,
         cscheme=color,
     )
 

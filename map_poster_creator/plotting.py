@@ -32,10 +32,13 @@ def plot_and_save(
         cscheme: ColorScheme,
         geometry: MapGeometry,
         path: Path,
-        figsize: Optional[Tuple[float, float]] = (19, 19),
         dpi: Optional[int] = 300,
+        width: Optional[int] = None,
+        figsize: Optional[Tuple[float, float]] = (8, 8),
 ) -> None:
     plt.clf()
+    if width is not None:
+        figsize = (width, width)
     fig, ax = plt.subplots(figsize=figsize, facecolor=cscheme.facecolor.rgb)
     if not isinstance(ax, Axes):
         return
@@ -47,6 +50,8 @@ def plot_and_save(
         color=cscheme.roads.rgb,
         linewidth=[road_width(d) for d in roads.speeds],
     )
+    # Set aspect ration according depending on latitude
+    # (not sure why this is needed)
     ax.set_aspect(
         1 / math.cos(math.pi / 180 * geometry.center[0])
     )

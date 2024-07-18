@@ -14,6 +14,8 @@ _TEMP_DIR = Path(tempfile.gettempdir())
 class Config:
     data_dir: Path = _DEFAULT_DATA_DIR
     output_dir: Path = _DEFAULT_OUTPUT_DIR
+    default_width: str = "15cm"
+    default_dpi: int = 300
     keep_shp_files: bool = False
 
     @classmethod
