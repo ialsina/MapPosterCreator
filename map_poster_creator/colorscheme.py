@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field, asdict
+from functools import lru_cache
 import json
 import logging
 from typing import Mapping
@@ -111,13 +112,16 @@ def _ensure_colorscheme_config_file() -> None:
     logger.info(f"User colors config not found!")
     _save_colorschemes(schemes=_DEFAULT_SCHEMES)
 
+@lru_cache(maxsize=None)
 def get_colorschemes() -> dict[str, ColorScheme]:
     with open(_CONFIG_COLORSCHEME_PATH, "r", encoding="utf-8") as cf:
         return json.load(cf, object_hook=object_hook)
 
+@lru_cache(maxsize=None)
 def get_available_colorschemes():
     return list(get_colorschemes().keys())
 
+@lru_cache(maxsize=None)
 def get_colorscheme(name):
     return get_colorschemes()[name]
 

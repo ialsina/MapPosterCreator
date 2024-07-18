@@ -51,7 +51,7 @@ def create_poster(
         shp_dir: Path,
         geojson_path: Path,
         color: ColorScheme,
-        output_prefix: str,
+        output: Path,
 ):
     poly, geometry = _get_boundary_shape(geojson=geojson_path)
     roads = _preprocessing_roads(
@@ -71,7 +71,7 @@ def create_poster(
         water=water,
         greens=greens,
         geometry=geometry,
-        path=f'{output_prefix}_{color}.png',
+        path=output,
         dpi=1200,
         cscheme=color,
     )

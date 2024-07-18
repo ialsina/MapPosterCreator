@@ -1,11 +1,12 @@
 import math
+from pathlib import Path
 from typing import Tuple, Optional
 
 from geopandas import GeoDataFrame
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
-from map_poster_creator.colorscheme import Color, ColorScheme
+from map_poster_creator.colorscheme import ColorScheme
 from map_poster_creator.geojson import MapGeometry
 from map_poster_creator.logs import log_processing
 
@@ -30,12 +31,14 @@ def plot_and_save(
         greens: GeoDataFrame,
         cscheme: ColorScheme,
         geometry: MapGeometry,
-        path: str,
+        path: Path,
         figsize: Optional[Tuple[float, float]] = (19, 19),
         dpi: Optional[int] = 300,
 ) -> None:
     plt.clf()
     fig, ax = plt.subplots(figsize=figsize, facecolor=cscheme.facecolor.rgb)
+    if not isinstance(ax, Axes):
+        return
     plot_dataframe(ax=ax, gdf=water, color=cscheme.water.rgb, lw=0.1)
     plot_dataframe(ax=ax, gdf=greens, color=cscheme.greens.rgb, lw=0.1)
     plot_dataframe(

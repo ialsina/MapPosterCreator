@@ -3,22 +3,23 @@ import logging
 from pandas import DataFrame
 from pathlib import Path
 from tabulate import tabulate
-from typing import Callable, Tuple, Mapping
+from typing import Callable, Tuple, Mapping, Sequence
 import sys
 import webbrowser
 
+from map_poster_creator.config import paths
 from map_poster_creator.core import (
     create_poster,
+)
+from map_poster_creator.colorscheme import (
+    ColorScheme,
+    get_colorscheme,
+    get_colorschemes,
+    add_colorscheme,
 )
 from map_poster_creator.data import (
     browser_get_geojson_path_interactive,
     download_shp_interactive,
-)
-from map_poster_creator.colorscheme import (
-    ColorScheme,
-    get_colorschemes,
-    get_available_colorschemes,
-    add_colorscheme,
 )
 from map_poster_creator import __version__
 
@@ -178,10 +179,21 @@ def _browse_service(
     else:
         print_help()
 
+def _split_city_country(city_country_str: str | None) -> Tuple[str | None, str | None]:
+    if city_country_str is None:
+        return (None, None)
+    city_country = [el.strip() for el in city_country_str.split(",", 2)]
+    if len(city_country) == 1:
+        return (city_country[0], None)
+    return (city_country[0], city_country[1])
+
 def _poster_service(args: Namespace, print_help: Callable) -> None:
-    city_name = args.city
-    shp_path = args.shp_path
-    geojson_path = args.geojson_path
+    city_name, country_name = _split_city_country(args.city)
+    shp_path: str | Path | None = args.shp_path
+    geojson_path: str | Path | None = args.geojson_path
+    colors: Sequence[str] = args.colors
+    output_prefix: str | None = args.output_prefix
+    output_dir: Path = paths.output_dir
 
     if city_name is None:
         if shp_path is None or geojson_path is None:
@@ -189,19 +201,33 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             return
     else:
         if geojson_path is None:
-            geojson_path = browser_get_geojson_path_interactive(city_name)
+            geojson_path = browser_get_geojson_path_interactive(
+                city=city_name, country=country_name,
+            )
         if shp_path is None:
-            shp_path = download_shp_interactive(city_name)
+            shp_path = download_shp_interactive(
+                city=city_name, country=country_name
+            )
 
-    colors = args.colors
-    output_prefix = args.output_prefix
+    if output_prefix is None:
+        output_prefix = city_name
 
-    create_poster(
-        shp_dir=shp_path,
-        geojson_path=geojson_path,
-        color=colors,
-        output_prefix=output_prefix,
-    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for cscheme_name in colors:
+        fname = f"{output_prefix}_{cscheme_name}.png"
+        fpath = paths.output_dir / fname
+        args.output_prefix
+        try:
+            create_poster(
+                shp_dir=Path(shp_path),
+                geojson_path=Path(geojson_path),
+                color=get_colorscheme(cscheme_name),
+                output=fpath,
+            )
+        except KeyError:
+            print(
+                f"Skipping color {cscheme_name} as it is unknown."
+            )
     return
 
 _AVAILABLE_SERVICES = {
