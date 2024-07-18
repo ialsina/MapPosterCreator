@@ -17,6 +17,7 @@ class Config:
     default_width: str = "15cm"
     default_dpi: int = 300
     keep_shp_files: bool = False
+    keep_geojson_files: bool = False
 
     @classmethod
     def from_dict(cls, dct):
@@ -44,5 +45,6 @@ class paths:
     geofabrik_tree_nw = data_dir / "geofabrik_tree.nw"
     geofabrik_tree_txt = data_dir / "geofabrik_tree.txt"
     geofabrik_urls = data_dir / "geofabrik_urls.json"
-    shp_path = (data_dir if config.keep_shp_files else _TEMP_DIR) / "shp"
+    shp_path = (data_dir if config.keep_shp_files else _TEMP_DIR / "mapoc") / "shp"
+    geojson_path = (data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc") /"geojson"
 

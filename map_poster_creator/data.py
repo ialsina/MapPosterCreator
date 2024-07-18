@@ -230,12 +230,22 @@ def _remove_hash_trailing_lines(file):
     file.truncate()
     file.write("".join(filtered_content).encode("utf-8"))
 
+def _ask_reuse(city):
+    print(f"Geojson file found for {city}.")
+    return input("Reuse? [Y/n] >").lower() not in {"n", "no", "false", "0"}
+
 def _exit_if_empty_file(file):
     file.seek(0)
     if not file.read():
         raise SystemExit
 
 def browser_get_geojson_path_interactive(city: str, country: Optional[str] = None) -> Path:
+    path = paths.geojson_path
+    path.mkdir(parents=True, exist_ok=True)
+    filepath = path / f"{city}.geojson"
+    if filepath.exists():
+        if _ask_reuse(city):
+            return filepath
     city_series = resolve_city(city=city, country=country)
     if city_series is None:
         raise ValueError(
@@ -248,7 +258,7 @@ def browser_get_geojson_path_interactive(city: str, country: Optional[str] = Non
             latitude=city_series["latitude"],
             longitude=city_series["longitude"])
     )
-    with NamedTemporaryFile(mode="w+b", delete=False) as tf:
+    with open(filepath, "w+b") as tf:
         filepath = tf.name
         tf.write(
             b"# Create the shape in the browser, and paste the JSON object below\n\n\n"
