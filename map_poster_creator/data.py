@@ -236,7 +236,7 @@ def _exit_if_empty_file(file):
         raise SystemExit
 
 def browser_get_geojson_path_interactive(city: str, country: Optional[str] = None) -> Path:
-    city_series = resolve_city(city, country)
+    city_series = resolve_city(city=city, country=country)
     if city_series is None:
         raise ValueError(
             f'City "{city}" '
