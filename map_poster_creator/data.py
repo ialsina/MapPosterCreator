@@ -1,20 +1,21 @@
-from bs4 import BeautifulSoup, Tag
 from functools import lru_cache
 import os
 import subprocess
-from pandas import DataFrame, Series, read_csv
+from pathlib import Path
 import platform
 from requests import Session
 from requests.adapters import HTTPAdapter
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from tempfile import NamedTemporaryFile
 from typing import Optional
-from unidecode import unidecode
 from urllib.parse import urljoin
 import webbrowser
 import wget
 from zipfile import ZipFile
 
+from bs4 import BeautifulSoup, Tag
+from pandas import DataFrame, Series, read_csv
 from map_poster_creator.config import paths
+from unidecode import unidecode
 
 GEOJSON_URL = "https://geojson.io/#map=10/{latitude}/{longitude}"
 GEOFABRIK_URL = "https://download.geofabrik.de"
@@ -68,6 +69,7 @@ def resolve_city(
         country: Optional[str] = None,
         *,
         interactive: bool = True,
+        element_if_one: bool = True,
         first: bool = False,
     ) -> DataFrame | Series | None:
     city_df = get_city_df()
@@ -87,10 +89,10 @@ def resolve_city(
     candidates.sort_values(by="population", ascending=False, inplace=True)
     if candidates.shape[0] == 0:
         return None
-    if first:
-        return candidates.iloc[0]
     if candidates.shape[0] > 1 and interactive:
         return _interactive_resolve(candidates)
+    if (candidates.shape[0] == 1 and element_if_one) or first:
+        return candidates.iloc[0]
     return candidates
 
 def _open_text_editor(file_path):
@@ -117,7 +119,7 @@ def _remove_hash_trailing_lines(file):
     file.truncate()
     file.write("".join(filtered_content).encode("utf-8"))
 
-def browser_get_geojson_path_interactive(city: str, country: Optional[str] = None) -> str:
+def browser_get_geojson_path_interactive(city: str, country: Optional[str] = None) -> Path:
     city_series = resolve_city(city, country)
     if city_series is None:
         raise ValueError(
@@ -138,7 +140,7 @@ def browser_get_geojson_path_interactive(city: str, country: Optional[str] = Non
         tf.flush()
         _open_text_editor(filepath)
         _remove_hash_trailing_lines(tf)
-        return filepath
+    return Path(filepath)
 
 
 def _find_shp_url(region_url: str) -> str:
@@ -159,7 +161,28 @@ def _find_shp_url(region_url: str) -> str:
             f"Couldn't find a satisfying a tag in {region_url}."
         )
 
-def download_shp_interactive(city: str, country: Optional[str] = None):
+def _get_extract_dir(path: Path, fname: str) -> Path:
+    return (path / Path(fname).stem)
+
+def _download_extract_shp(shp_url: str) -> Path:
+    path = paths.shp_path
+    path.mkdir(parents=True, exist_ok=True)
+    fname = shp_url.split('/')[-1]
+    if _get_extract_dir(path, fname).exists():
+        return _get_extract_dir(path, fname)
+    print(f"Downloading in: {path}")
+    fname = wget.download(shp_url, out=str(path))
+    zip_fpath = path / fname
+    print(f"New zip file: {zip_fpath}")
+    extract_dir = _get_extract_dir(path, fname)
+    extract_dir.mkdir(parents=False, exist_ok=False)
+    print(f"Extracting in: {extract_dir}")
+    with ZipFile(zip_fpath, "r") as zf:
+        zf.extractall(path=str(extract_dir))
+    os.remove(zip_fpath)
+    return extract_dir
+
+def download_shp_interactive(city: str, country: Optional[str] = None) -> Path:
     webbrowser.open_new_tab(GEOFABRIK_URL)
     message = (
         "# Please, navigate to the page of the region corresponding to the city of "
@@ -173,22 +196,9 @@ def download_shp_interactive(city: str, country: Optional[str] = None):
         _remove_hash_trailing_lines(tf)
         tf.seek(0)
         region_url = tf.read().decode("utf-8").strip()
-        print(region_url)
         shp_url = _find_shp_url(region_url)
-
-    tempdir = TemporaryDirectory()
-    tempdir.cleanup = False
-    tempdir_path = tempdir.name
-    print(tempdir)
-    wget.download(shp_url, out=tempdir_path)
-    zip_fpath = os.path.join(
-        tempdir_path,
-        os.listdir(tempdir_path)[0]
-    )
-    with ZipFile(zip_fpath, "r") as zf:
-        zf.extractall(path=tempdir_path)
-    os.remove(zip_fpath)
-    return tempdir_path
+    extract_dir = _download_extract_shp(shp_url)
+    return extract_dir
 
 if __name__ == "__main__":
     download_shp_interactive("Barcelona")

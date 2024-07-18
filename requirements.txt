@@ -5,6 +5,7 @@ geopandas
 shapely
 matplotlib
 pandas
+pyyaml
 requests
 tabulate
 unidecode
