@@ -1,10 +1,11 @@
 from collections import defaultdict
 import json
-from requests import Session
+from requests import Session, RequestException
 from requests.adapters import HTTPAdapter
 from urllib.parse import urljoin
 from pprint import pprint
 from unidecode import unidecode
+from tqdm import tqdm
 from typing import Tuple, Mapping, Sequence
 
 from bs4 import BeautifulSoup
@@ -13,8 +14,8 @@ from ete3 import TreeNode
 from map_poster_creator.config import paths
 
 URL = "https://download.geofabrik.de/"
-
 UrlsType = Mapping[str, Sequence[str]]
+print = tqdm.write
 
 def find_tables(soup):
     subregions = soup.find_all("table", id="subregions", recursive=True)
@@ -31,15 +32,31 @@ def get_pages_from_table(table):
             pages[a_tag.text] = a_tag.attrs.get("href")
     return pages
 
+def _get_description(url: str, region: str) -> str:
+    max_url = 60
+    max_region = 30
+    url = (
+        url
+        if len(url) <= max_url
+        else url[:(max_url - 3)] + "..."
+    )
+    region = (
+        region
+        if len(region) <= max_region
+        else region[:(max_region - 3)] + "..."
+    )
+    return f"{region:>{max_region}s}: {url:<{max_url}s}"
+
 def find_tree(session) -> Tuple[TreeNode, UrlsType]:
     def navigate_node(url, region="", depth=1):
-        print(f"{url:<90s}", end="\r")
+        print(_get_description(url, region), end="\r")
 
         response = session.get(url)
         if response.status_code != 200:
             print(f"Request failed: {url}", end="\r")
             return TreeNode()
 
+        response.encoding = response.apparent_encoding
         soup = BeautifulSoup(response.text, "html.parser")
 
         node = TreeNode(name=unidecode(region))
@@ -50,7 +67,7 @@ def find_tree(session) -> Tuple[TreeNode, UrlsType]:
                 if href.endswith(".html"):
                     child_node = navigate_node(
                         url=urljoin(url, href),
-                        region=name,
+                        region=unidecode(name),
                         depth=depth+1,
                     )
                     if child_node:
@@ -59,27 +76,35 @@ def find_tree(session) -> Tuple[TreeNode, UrlsType]:
                   region_urls[region].append(urljoin(url, href))
         return node
 
-    print("Navigating:", end="\r")
+    print(f"Building tree. Navigating site {URL}...\n")
     region_urls = defaultdict(list)
     region_tree = navigate_node(URL)
     return region_tree, dict(region_urls)
 
-def fetch_polygons(session: Session, tree: TreeNode, urls: UrlsType) -> None:
+def fetch_polygons(
+        session: Session,
+        tree: TreeNode,
+        urls: UrlsType,
+    ) -> None:
     print("Fetching polygons:")
-    for node in tree.traverse():
-        print(f"{node.name:<90s}", end="\r")
-        if node.name not in urls:
-            continue
-        try:
-            poly_url = next(
-                filter(lambda x: x.endswith(".poly"), urls[node.name])
-            )
-        except StopIteration:
-            continue
-        response = session.get(poly_url)
-        if response.status_code != 200:
-            continue
-        node.add_feature("polygon", response.text)
+    tree_iter = tree.traverse()
+    if tree_iter is None:
+        return
+    with tqdm(total=len(tree), leave=True) as pbar:
+        for node in tree_iter:
+            node_name = unidecode(node.name)
+            pbar.set_description(node_name)
+            print(f"{node_name:<90s}", end="\r")
+            try:
+                poly_url = next(
+                    filter(lambda x: x.endswith(".poly"), urls[node_name])
+                )
+                response = session.get(poly_url)
+                response.raise_for_status()
+                node.add_feature("polygon", response.text)
+            except (StopIteration, KeyError, RequestException):
+                print(f"Couldn't fetch polygon for {node_name}")
+            pbar.update()
 
 def _tree_to_json(node):
     result = {"name": node.name}
