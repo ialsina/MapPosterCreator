@@ -1,5 +1,6 @@
 from argparse import ArgumentParser, Namespace
 import logging
+from matplotlib import interactive
 from pandas import DataFrame
 from pathlib import Path
 from tabulate import tabulate
@@ -253,7 +254,10 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
         if shp_path is None:
             try:
                 shp_path = find_download_shp(
-                    city=city_name, country=country_name
+                    city=city_name,
+                    country=country_name,
+                    interactive=False,
+                    calculate_point=True,
                 )
             except (ValueError, NotImplementedError):
                 shp_path = download_shp_interactive(
@@ -277,6 +281,12 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 dpi=args.dpi,
                 output=fpath,
             )
+        except ValueError as exc:
+            raise ValueError(
+                "Error during poster creation. This can be due to a geojson "
+                "passed with polygons defined, which do not belong to the "
+                "SHP file. "
+            ) from exc
         except KeyError:
             print(
                 f"Skipping color {cscheme_name} as it is unknown."

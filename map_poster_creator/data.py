@@ -4,12 +4,10 @@ import os
 import subprocess
 from pathlib import Path
 import platform
-from pprint import pprint
-from matplotlib import interactive
 from requests import Session
 from requests.adapters import HTTPAdapter
 from tempfile import NamedTemporaryFile
-from typing import Optional, Sequence, Mapping, Iterable
+from typing import Optional, Sequence, Mapping
 from urllib.parse import urljoin
 import webbrowser
 import wget
@@ -20,7 +18,6 @@ from ete3 import Tree
 from geopandas import GeoDataFrame
 from shapely.geometry import Point, Polygon
 from pandas import DataFrame, Series, read_csv
-from tqdm import tqdm
 from unidecode import unidecode
 
 from map_poster_creator.config import paths
@@ -85,41 +82,12 @@ def _parse_polygons(data: str) -> Sequence[Polygon]:
             current_polygon.append(coords)
     return polygons
 
-def _is_point_in_polygon(point: Point, polygon: Polygon) -> bool:
+def is_point_in_polygon(point: Point, polygon: Polygon) -> bool:
     polygon_gdf = GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[polygon])
     point_gdf = GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[point])
     return bool(polygon_gdf.contains(
         point_gdf.loc[0, 'geometry']
     )[0])
-
-@lru_cache
-def find_country_regions(
-        country: str,
-    ) -> Iterable[str]:
-    tree = get_regions_tree()
-    tree_iter = tree.traverse()
-    if tree_iter is None:
-        return iter([])
-    for node in tree_iter:
-        if node.name == country:
-            node_iter = node.traverse()
-            if node_iter is None:
-                return iter([])
-            return (child.name for child in node_iter)
-    return iter([])
-
-@lru_cache
-def find_country_subtree(
-        country_or_region: str
-    ) -> Tree:
-    tree = get_regions_tree()
-    tree_iter = tree.traverse()
-    if tree_iter is None:
-        return Tree()
-    for node in tree_iter:
-        if node.name == country_or_region:
-            return node
-    return Tree()
 
 @lru_cache(maxsize=None)
 def get_region_polygons(node: Tree):
@@ -152,7 +120,7 @@ def get_region_centroids(only_leaf: bool = False) -> Mapping[str, Sequence[Point
         ]
     return centroids
 
-def _interactive_resolve(df: DataFrame) -> Series:
+def _interactive_resolve_city(df: DataFrame) -> Series:
     def row_txt(row):
         country_name = countries[
             countries["Code"] == row["country code"]
@@ -160,6 +128,7 @@ def _interactive_resolve(df: DataFrame) -> Series:
         return f"{row['name']} ({country_name})"
     countries = get_country_df()
     choices = {i: row for i, (_, row) in enumerate(df.iterrows(), start=1)}
+    print("Choose city:")
     print("\t" + "\n\t".join(
         f"{i}. {row_txt(row)}" for i, row in choices.items()
     ))
@@ -201,7 +170,7 @@ def resolve_city(
     if candidates.shape[0] == 0:
         return None
     if candidates.shape[0] > 1 and interactive:
-        return _interactive_resolve(candidates)
+        return _interactive_resolve_city(candidates)
     if (candidates.shape[0] == 1 and element_if_one) or first:
         return candidates.iloc[0]
     return candidates
@@ -212,11 +181,11 @@ def _open_text_editor(file_path):
     Waits for the user to close the editor before continuing.
     """
     if platform.system() == 'Windows':
-        subprocess.run(['notepad', file_path])
+        subprocess.run(['notepad', file_path], check=False)
     elif platform.system() == 'Linux':
-        subprocess.run(['nano', file_path])
+        subprocess.run(['nano', file_path], check=False)
     elif platform.system() == 'Darwin':  # macOS
-        subprocess.run(['open', '-a', 'TextEdit', file_path])
+        subprocess.run(['open', '-a', 'TextEdit', file_path], check=False)
     else:
         raise SystemError(
             f"Unknown platform: {platform.system()}"
@@ -339,6 +308,7 @@ def _extract_shp_url(node: Tree):
 def _interactive_region_choose(sorted_distances, num_choices=5) -> Tree:
     top_regions = list(zip(*sorted_distances))[0][:num_choices]
     choices = {i: region for i, region in enumerate(top_regions, start=1)}
+    print("Choose region:")
     print("\t" + "\n\t".join(
         f"{i}. {node.name}" for i, node in choices.items())
     )
@@ -353,10 +323,20 @@ def _interactive_region_choose(sorted_distances, num_choices=5) -> Tree:
         except ValueError:
             pass
 
+def _calculate_point_choose(city_point, sorted_distances, city) -> Tree:
+    for region_node, _ in sorted_distances:
+        for region_polygon in get_region_polygons(region_node):
+            if is_point_in_polygon(city_point, region_polygon):
+                return region_node
+    raise ValueError(
+        f"Couldn't find a satisfying region for city {city}."
+    )
+
 def find_download_shp(
         city: str,
         country: Optional[str] = None,
-        interactive: Optional[bool] = False
+        calculate_point: Optional[bool] = False,
+        interactive: Optional[bool] = False,
     ):
     city_series = resolve_city(city=city, country=country)
     if city_series is None:
@@ -380,11 +360,12 @@ def find_download_shp(
         except ValueError:
             continue
     sorted_distances = sorted(distances, key=lambda x: x[1], reverse=False)
-    region_node = (
-        _interactive_region_choose(sorted_distances)
-        if interactive else
-        sorted_distances[0][0]
-    )
+    if calculate_point:
+        region_node = _calculate_point_choose(city_point, sorted_distances, city)
+    elif interactive:
+        region_node = _interactive_region_choose(sorted_distances)
+    else:
+        region_node = sorted_distances[0][0]
     shp_url = _extract_shp_url(region_node)
     return _download_extract_shp(shp_url)
 
