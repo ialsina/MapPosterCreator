@@ -230,6 +230,11 @@ def _remove_hash_trailing_lines(file):
     file.truncate()
     file.write("".join(filtered_content).encode("utf-8"))
 
+def _exit_if_empty_file(file):
+    file.seek(0)
+    if not file.read():
+        raise SystemExit
+
 def browser_get_geojson_path_interactive(city: str, country: Optional[str] = None) -> Path:
     city_series = resolve_city(city, country)
     if city_series is None:
@@ -251,6 +256,7 @@ def browser_get_geojson_path_interactive(city: str, country: Optional[str] = Non
         tf.flush()
         _open_text_editor(filepath)
         _remove_hash_trailing_lines(tf)
+        _exit_if_empty_file(tf)
     return Path(filepath)
 
 def _find_shp_url(region_url: str) -> str:
