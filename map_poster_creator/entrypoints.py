@@ -43,8 +43,8 @@ def _to_fwf(df, tablefmt="plain"):
     )
     return content
 
-def _add_poster_subparsers(parser_group) -> None:
-    poster_parser = parser_group.add_parser(
+def _add_poster_subparsers(subparser_group) -> None:
+    poster_parser = subparser_group.add_parser(
         'poster',
         description='Create Map Poster',
         help='Poster creation',
@@ -119,76 +119,90 @@ def _add_poster_subparsers(parser_group) -> None:
         default=None
     )
 
-def _add_color_add_subparser(parent_parser) -> None:
-    color_parser = parent_parser.add_parser('add', description="List available colors")
-    color_parser.add_argument(
-        'name',
-        help='Name of color scheme. eq. "blue"',
-        metavar="NAME",
-    )
-    color_parser.add_argument(
-        '-f', '--facecolor',
-        help='Face color, as a hex color or Matplotlib named color.',
-        required=True,
-        metavar="FACECOLOR",
-    )
-    color_parser.add_argument(
-        '-w', '--water',
-        help='Water color, as a hex color or Matplotlib named color.',
-        required=True,
-        metavar="WATER",
-    )
-    color_parser.add_argument(
-        '-g', '--greens',
-        help='Greens color, as a hex color or Matplotlib named color.',
-        required=True,
-        metavar="GREENS",
-    )
-    color_parser.add_argument(
-        '-r', '--roads',
-        help='Roads color, as a hex color or Matplotlib named color.',
-        required=True,
-        metavar="ROADS",
-    )
-
-def _add_browse_subparsers(parser_group) -> None:
-    browse_commands_parser = parser_group.add_parser(
+def _add_browse_subparsers(subparser_group) -> None:
+    browse_parser = subparser_group.add_parser(
         'browse',
         description='browse services',
         help='browse services',
     )
-    browse_commands_parser_group = browse_commands_parser.add_subparsers(
+    browse_parser_commands = browse_parser.add_subparsers(
         title='browse management commands',
         description='browse',
         help='Additional help for available commands',
         dest='browse_commands',
     )
-    browse_commands_parser_group.add_parser(
+    browse_parser_commands.add_parser(
         'shp',
         description='Shp download',
     )
-    browse_commands_parser_group.add_parser(
+    browse_parser_commands.add_parser(
         'geojson',
         description='Create geoJSON',
     )
 
-def _add_color_subparsers(parser_group) -> None:
-    color_commands_parser = parser_group.add_parser(
+def _add_color_subparsers(main_parser) -> None:
+    def command_add() -> None:
+        color_add_parser = color_parser_commands.add_parser(
+            'add',
+            description="List available colors"
+        )
+        color_add_parser.add_argument(
+            'name',
+            help='Name of color scheme. eq. "blue"',
+            metavar="NAME",
+        )
+        color_add_parser.add_argument(
+            '-f', '--facecolor',
+            help='Face color, as a hex color or Matplotlib named color.',
+            required=True,
+            metavar="FACECOLOR",
+        )
+        color_add_parser.add_argument(
+            '-w', '--water',
+            help='Water color, as a hex color or Matplotlib named color.',
+            required=True,
+            metavar="WATER",
+        )
+        color_add_parser.add_argument(
+            '-g', '--greens',
+            help='Greens color, as a hex color or Matplotlib named color.',
+            required=True,
+            metavar="GREENS",
+        )
+        color_add_parser.add_argument(
+            '-r', '--roads',
+            help='Roads color, as a hex color or Matplotlib named color.',
+            required=True,
+            metavar="ROADS",
+        )
+    def command_show() -> None:
+        parser = color_parser_commands.add_parser(
+            "show",
+            description="Show palette of available color"
+        )
+        parser.add_argument(
+            "name",
+            help="Name of the color scheme",
+        )
+    def command_list() -> None:
+        color_parser_commands.add_parser(
+            'list',
+            description="List available colors",
+        )
+    color_parser = main_parser.add_parser(
         'color',
         description='Color services',
         help='Color services',
     )
-    color_commands_parser_group = color_commands_parser.add_subparsers(
+    color_parser_commands = color_parser.add_subparsers(
         title='color management commands',
         description='Color management',
         help='Additional help for available commands',
         dest='color_commands',
     )
-    _add_color_add_subparser(color_commands_parser_group)
-    color_commands_parser_group.add_parser(
-        'list',
-        description="List available colors",
-    )
+    command_add()
+    command_show()
+    command_list()
 
 
 def _color_service(
@@ -214,6 +228,8 @@ def _color_service(
                 roads=args.roads,
             )
         )
+    elif command == "show":
+        get_colorscheme(args.name).show()
     else:
         print_help()
 
