@@ -201,7 +201,7 @@ def _color_service(
             DataFrame.from_dict({
                 name: scheme.to_json()
                 for name, scheme in get_colorschemes().items()
-            }, orient="index"),
+            }, orient="index").sort_index(inplace=False),
             tablefmt="fancy_grid"
         ))
     elif command == "add":
