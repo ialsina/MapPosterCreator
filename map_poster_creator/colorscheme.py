@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, astuple
 from functools import lru_cache
 import json
 import logging
@@ -6,6 +6,8 @@ from typing import Mapping
 
 from colour import Color
 from matplotlib.colors import get_named_colors_mapping
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
 
 from map_poster_creator.config import paths
 
@@ -17,12 +19,32 @@ _COLORSHCHEME_LIBRARY_FILES = (
 )
 _MATPLOTLIB_COLORS = get_named_colors_mapping()
 
+def _plot_palette(dct: Mapping[str, Color]):
+    fig, ax = plt.subplots(figsize=(len(dct), 1))
+
+    for i, (name, color) in enumerate(dct.items()):
+        rect = Rectangle(
+            (i / len(dct), 0), 1 / len(dct), 1,
+            linewidth=0, edgecolor='none', facecolor=color.rgb
+        )
+        ax.add_patch(rect)
+        ax.text(
+            (i + 0.5) / len(dct), -0.1, name,
+            ha='center', va='center',
+            fontsize=12, color='black', fontweight='bold'
+        )
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis('off')
+    fig.tight_layout()
+    plt.show()
+
 @dataclass
 class ColorScheme:
-    facecolor: Color = field(default_factory=lambda: Color("#ffffff"))
-    water: Color = field(default_factory=lambda: Color("#ffffff"))
-    greens: Color = field(default_factory=lambda: Color("#ffffff"))
-    roads: Color = field(default_factory=lambda: Color("#ffffff"))
+    facecolor: Color
+    water: Color
+    greens: Color
+    roads: Color
 
     @staticmethod
     def _make_color(arg=None):
@@ -53,8 +75,14 @@ class ColorScheme:
         self.greens = self._make_color(greens or facecolor)
         self.roads = self._make_color(roads or facecolor)
 
+    def __hash__(self):
+        return hash(tuple(color.hex for color in astuple(self)))
+
     def to_json(self):
         return {key: str(color.hex) for key, color in asdict(self).items()}
+
+    def show(self):
+        _plot_palette(asdict(self))
 
 
 class JSONEncoder(json.JSONEncoder):
