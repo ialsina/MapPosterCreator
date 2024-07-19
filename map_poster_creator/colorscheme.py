@@ -11,6 +11,10 @@ from map_poster_creator.config import paths
 
 logger = logging.getLogger(__name__)
 _CONFIG_COLORSCHEME_PATH = paths.colors
+_COLORSHCHEME_LIBRARY_FILES = (
+    _CONFIG_COLORSCHEME_PATH,
+    paths.dictionary_of_color_combinations,
+)
 _MATPLOTLIB_COLORS = get_named_colors_mapping()
 
 @dataclass
@@ -114,8 +118,13 @@ def _ensure_colorscheme_config_file() -> None:
 
 @lru_cache(maxsize=None)
 def get_colorschemes() -> dict[str, ColorScheme]:
-    with open(_CONFIG_COLORSCHEME_PATH, "r", encoding="utf-8") as cf:
-        return json.load(cf, object_hook=object_hook)
+    colorschemes = {}
+    for file in _COLORSHCHEME_LIBRARY_FILES:
+        with open(file, "r", encoding="utf-8") as cf:
+            colorschemes.update(
+                json.load(cf, object_hook=object_hook)
+            )
+    return colorschemes
 
 @lru_cache(maxsize=None)
 def get_available_colorschemes():
