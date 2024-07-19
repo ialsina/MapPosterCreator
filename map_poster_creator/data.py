@@ -125,7 +125,10 @@ def _interactive_resolve_city(df: DataFrame) -> Series:
         country_name = countries[
             countries["Code"] == row["country code"]
         ].iloc[0]["Name"]
-        return f"{row['name']} ({country_name})"
+        admin_lst = [row[f"admin{i} code"] for i in range(4, 0, -1)]
+        admin_lst.append(country_name)
+        admin_txt = ", ".join(el for el in admin_lst if el)
+        return f"{row['name']}, {admin_txt}"
     countries = get_country_df()
     choices = {i: row for i, (_, row) in enumerate(df.iterrows(), start=1)}
     print("Choose city:")
