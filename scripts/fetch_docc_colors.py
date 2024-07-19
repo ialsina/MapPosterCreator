@@ -1,3 +1,57 @@
+"""
+Fetch colors of A Dictionary of Color Combinations Vol 1, by Sanzo Wada,
+from the repository maintained by Matt DesLauriers (github.com/mattdesl).
+
+At first, the idea was to loop for all the combinations, and choose those
+with greener tones for ColorScheme.greens, bluer tones for ColorScheme.water,
+Then, a light version could be provided by assigning the lighter and darker 
+tones to ColorScheme.facecolor and ColorScheme.roads, respectively.
+Finally, a darker version was provided with the opposite.
+
+The issue, however lied in that, depending on how colors where chosen from the
+color combination, this would lead to an arbitrarily chosen ColorScheme created
+from the palette. For example, color combination #334 offers two equally valid
+light-themed combinations, either by assigning the darker or lighter green to
+ColorScheme.greens and the other one to ColorScheme.roads, or vice versa.
+
+For this reason, a slightly more complex approach is taken in the current script.
+Here, we create all possible algorithms for color choosing, based on permutations
+of the color-picking sequence. Thus, if the color combination is
+
+    { #1, #2, #3, #4 }
+
+a possible ColorScheme could result from a particular color-picking sequence, say,
+
+    lightest (#1) -> darkest (#4) -> greenest (#2) -> bluest (#3)
+
+while aanother one would result from a different color-picking sequence, say,
+
+    greenest (#1) -> lightest (#2) -> bluest (#4) -> darkest (#3).
+
+Between parentheses is the picked color from among the remaining unpicked ones.
+This example would arise from a color combination in which color #1 is lighter
+than #2 but greener than #1, and color #4 is darker than #3, but also bluer.
+In this particular example, by assigning "lightest" to ColorScheme.facecolor,
+"darkest" to ColorScheme.roads, "bluest" to ColorScheme.water, and "greenest"
+to ColorScheme.greens, we would have created two light-themed ColorSchemes. By
+exchanging "lightest" and "darkest", we would have created two dark-themed ones.
+
+Hence, by assigning a value to each of the possible color-picking sequences, then
+discarding all the sequences that yield identical ColorSchemes, we have a collection
+of light-themed and dark-themed ColorSchemes for each color combination of the book.
+The typical number of unique ColorSchemes arising for each combination is 3 to 5 for
+light and likewise for dark themes. The convention than we follow for naming the
+combinations is:
+
+    ~docc-XXX-theme-Y
+
+Where docc stands for "A Dictionary of Color Combinations", XXX is the combination
+number in the book, theme is either "light" or "dark", and "-Y", as a suffix, is an
+identifier for  each of the possible combination outcomes. In case there is a single
+one, the whole suffix (including the hyphen) is omitted. The tilde ("~") is so that
+the names of the combinations sort last in an alphabetical list.
+"""
+
 from collections import defaultdict, UserList, UserDict
 from dataclasses import dataclass, asdict
 from functools import partial, lru_cache
@@ -5,6 +59,7 @@ from itertools import permutations
 import json
 from requests import Session
 from requests.adapters import HTTPAdapter
+from tqdm import tqdm
 from typing import Sequence, Any, Callable, List, Optional
 
 from map_poster_creator.config import paths
@@ -42,6 +97,21 @@ class colorops:
 
 @dataclass
 class FunCollection:
+    pass
+
+@dataclass
+class Fun2Collection(FunCollection):
+    facecolor: Callable
+    roads: Callable
+
+@dataclass
+class Fun3Collection(FunCollection):
+    facecolor: Callable
+    roads: Callable
+    greens: Callable
+
+@dataclass
+class Fun4Collection(FunCollection):
     facecolor: Callable
     roads: Callable
     water: Callable
@@ -84,30 +154,55 @@ class AlgoFactory:
             raise StopIteration
 
 class DoccCombination(UserList):
-    assignments = {
-        "light": FunCollection(
-            facecolor=colorops.lightest,
-            roads=colorops.darkest,
-            water=partial(colorops.closest, target="blue"),
-            greens=partial(colorops.closest, target="green"),
-        ),
-        "dark": FunCollection(
-            facecolor = colorops.lightest,
-            roads = colorops.darkest,
-            water = partial(colorops.closest, target="blue"),
-            greens = partial(colorops.closest, target="green"),
-        ),
+    _assignments = {
+        2: {
+            "light": Fun2Collection(
+                facecolor=colorops.lightest,
+                roads=colorops.darkest,
+            ),
+            "dark": Fun2Collection(
+                facecolor = colorops.darkest,
+                roads = colorops.lightest,
+            ),
+        },
+        3: {
+            "light": Fun3Collection(
+                facecolor=colorops.lightest,
+                roads=colorops.darkest,
+                greens=partial(colorops.closest, target="green"),
+            ),
+            "dark": Fun3Collection(
+                facecolor = colorops.darkest,
+                roads = colorops.lightest,
+                greens = partial(colorops.closest, target="green"),
+            ),
+        },
+        4: {
+            "light": Fun4Collection(
+                facecolor=colorops.lightest,
+                roads=colorops.darkest,
+                water=partial(colorops.closest, target="blue"),
+                greens=partial(colorops.closest, target="green"),
+            ),
+            "dark": Fun4Collection(
+                facecolor = colorops.lightest,
+                roads = colorops.darkest,
+                water = partial(colorops.closest, target="blue"),
+                greens = partial(colorops.closest, target="green"),
+            ),
+        },
     }
 
     def __init__(self, lst):
-        if len(lst) != 4:
+        if len(lst) not in {2, 3, 4}:
             raise ValueError(
-                f"We need 4 elements, there were {len(lst)}."
+                f"We need 2, 3 or 4 elements. There were {len(lst)}."
             )
         if not all(isinstance(element, Color) for element in lst):
             raise TypeError(
                 f"We need all elements to be of type 'colours.Color'"
             )
+        self.assignments = self._assignments[len(lst)]
         super().__init__(lst)
 
     def _get_colorschemes(self, key, unique=True):
@@ -128,8 +223,13 @@ class DoccCombination(UserList):
         for key in self.assignments.keys():
             key_colorschemes = self._get_colorschemes(key, unique=unique)
             for i, csc in enumerate(key_colorschemes, start=1):
+                suffix = (
+                    f"-{i:d}"
+                    if len(key_colorschemes) > 1
+                    else ""
+                )
                 colorschemes.update({
-                    prefix + key + f"-{i}": csc
+                    prefix + key + suffix: csc
                 })
         return colorschemes
 
@@ -163,13 +263,14 @@ def get_docc_schemes():
     docc_combinations = get_docc_combinations()
     docc_schemes = {}
 
-    for name, colors in docc_combinations.items():
-        if len(colors) == 4:
+    with tqdm(total=len(docc_combinations), leave=False) as pbar:
+        for name, colors in docc_combinations.items():
             docc = DoccCombination(colors)
-            prefix = f"~docc-{name}-"
+            prefix = f"~docc-{name:03d}-"
             docc_schemes.update(
                 docc.get_colorschemes(prefix)
             )
+            pbar.update()
 
     return docc_schemes
 
