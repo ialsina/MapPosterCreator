@@ -121,11 +121,35 @@ def _add_poster_subparsers(parser_group) -> None:
 
 def _add_color_add_subparser(parent_parser) -> None:
     color_parser = parent_parser.add_parser('add', description="List available colors")
-    color_parser.add_argument('--name', help='Name of color scheme. eq. "blue"', required=True)
-    color_parser.add_argument('--facecolor', help='MatPlot face hex color. eq. "#ffffff"', required=True)
-    color_parser.add_argument('--water', help='MatPlot water hex color. eq. "#ffffff"', required=True)
-    color_parser.add_argument('--greens', help='MatPlot greens hex color. eq. "#ffffff"', required=True)
-    color_parser.add_argument('--roads', help='MatPlot roads hex color. eq. "#ffffff"', required=True)
+    color_parser.add_argument(
+        'name',
+        help='Name of color scheme. eq. "blue"',
+        metavar="NAME",
+    )
+    color_parser.add_argument(
+        '-f', '--facecolor',
+        help='Face color, as a hex color or Matplotlib named color.',
+        required=True,
+        metavar="FACECOLOR",
+    )
+    color_parser.add_argument(
+        '-w', '--water',
+        help='Water color, as a hex color or Matplotlib named color.',
+        required=True,
+        metavar="WATER",
+    )
+    color_parser.add_argument(
+        '-g', '--greens',
+        help='Greens color, as a hex color or Matplotlib named color.',
+        required=True,
+        metavar="GREENS",
+    )
+    color_parser.add_argument(
+        '-r', '--roads',
+        help='Roads color, as a hex color or Matplotlib named color.',
+        required=True,
+        metavar="ROADS",
+    )
 
 def _add_browse_subparsers(parser_group) -> None:
     browse_commands_parser = parser_group.add_parser(
@@ -205,7 +229,7 @@ def _browse_service(
     else:
         print_help()
 
-def _size_to_inches(size_units: str) -> int:
+def _size_to_inches(size_units: str) -> float:
     if size_units.isnumeric():
         return float(size_units) * 0.3937008
     if size_units.endswith("cm"):

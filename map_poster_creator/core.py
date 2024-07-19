@@ -51,7 +51,7 @@ def create_poster(
         shp_dir: Path,
         geojson_path: Path,
         color: ColorScheme,
-        width: int,
+        width: int | float,
         dpi: int,
         output: Path,
 ):
