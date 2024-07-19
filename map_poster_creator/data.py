@@ -7,7 +7,7 @@ import platform
 from requests import Session
 from requests.adapters import HTTPAdapter
 from tempfile import NamedTemporaryFile
-from typing import Optional, Sequence, Mapping
+from typing import Optional, Sequence, Mapping, Callable
 from urllib.parse import urljoin
 import webbrowser
 import wget
@@ -143,6 +143,21 @@ def _interactive_resolve_city(df: DataFrame) -> Series:
         except ValueError:
             pass
 
+def _search_fun(df: DataFrame, search_term: str) -> Series:
+    search_term_lower = search_term.lower()
+    search_term_decoded = unidecode(search_term).lower()
+    return ((
+        df["asciiname"].apply(str.lower) == search_term_decoded
+    ) | (
+        df["name"].apply(lambda x: unidecode(x).lower()) == search_term_decoded
+    )) | (
+        df["alternatenames"].apply(
+            lambda x: x.split(",")
+        ).apply(lambda lst: any(
+            (x == search_term_lower) for x in lst
+        ))
+    )
+
 @lru_cache
 def resolve_city(
         city: str,
@@ -155,7 +170,7 @@ def resolve_city(
     city_df = get_city_df()
     if country is None:
         candidates = city_df[
-            city_df["asciiname"].apply(str.lower) == unidecode(city).lower()
+            _search_fun(city_df, city)
         ].copy()
     else:
         countries = get_country_df()
