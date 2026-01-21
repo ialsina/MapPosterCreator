@@ -4,7 +4,7 @@ from typing import Tuple, Sequence, Optional
 from pathlib import Path
 
 from geopandas import GeoDataFrame
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 
 from map_poster_creator.colorscheme import ColorScheme
 from map_poster_creator.geojson import (
@@ -26,13 +26,13 @@ class shp_filename:
 
 
 @log_processing
-def _get_boundary_shape(geojson) -> Tuple[Polygon, MapGeometry]:
+def _get_boundary_shape(geojson) -> Tuple[Polygon | MultiPolygon, MapGeometry]:
     poly = get_polygon_from_geojson(geojson)
     geometry = get_map_geometry_from_poly(poly)
     return poly, geometry
 
 @log_processing
-def _preprocessing(poly: Polygon, gdf: GeoDataFrame) -> GeoDataFrame:
+def _preprocessing(poly: Polygon | MultiPolygon, gdf: GeoDataFrame) -> GeoDataFrame:
     def poly_contains(g):
         return poly.contains(g)
     town = gdf.loc[
@@ -41,7 +41,7 @@ def _preprocessing(poly: Polygon, gdf: GeoDataFrame) -> GeoDataFrame:
     return town
 
 @log_processing
-def _preprocessing_roads(poly: Polygon, gdf: GeoDataFrame) -> GeoDataFrame:
+def _preprocessing_roads(poly: Polygon | MultiPolygon, gdf: GeoDataFrame) -> GeoDataFrame:
     town = _preprocessing(poly=poly, gdf=gdf)
     town = town[~town.fclass.isin(['footway', "steps"])]
     town['speeds'] = [speed for speed in town['maxspeed']]

@@ -2,11 +2,11 @@ colour
 descartes
 ete3
 geopandas
-shapely
 matplotlib
 pandas
 pyyaml
 requests
+shapely
 tabulate
 unidecode
 wget

@@ -22,6 +22,7 @@ from map_poster_creator.data import (
     browser_get_geojson_path_interactive,
     download_shp_interactive,
     find_download_shp,
+    get_geojson_path_from_geoboundaries,
 )
 from map_poster_creator import __version__
 
@@ -56,6 +57,27 @@ def _add_poster_subparsers(subparser_group) -> None:
         ),
         metavar="CITY",
         dest="city"
+    )
+    poster_parser.add_argument(
+        "-c",
+        "--country-code",
+        default=None,
+        action="store",
+        required=False,
+        help=(
+            "Two-letter country code (e.g., 'JP', 'US'). "
+            "If multiple cities match, the one with highest population is selected."
+        ),
+        metavar="COUNTRY_CODE",
+    )
+    poster_parser.add_argument(
+        "-i", "--interactive",
+        action="store_true",
+        required=False,
+        help=(
+            "If multiple cities match, prompt user to select one interactively. "
+            "By default, selects the city with highest population."
+        ),
     )
     poster_parser.add_argument(
         "-w", "--width",
@@ -281,6 +303,13 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
     output_prefix: str | None = args.output_prefix
     output_dir: Path = paths.output_dir
     width_in = _size_to_inches(args.width)
+    # argparse converts --country-code to country_code in namespace
+    country_code: str | None = getattr(args, 'country_code', None)
+    if country_code:
+        country_code = str(country_code).strip()
+    else:
+        country_code = None
+    interactive: bool = getattr(args, 'interactive', False)
 
     if city_name is None:
         if shp_path is None or geojson_path is None:
@@ -288,8 +317,11 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             return
     else:
         if geojson_path is None:
-            geojson_path = browser_get_geojson_path_interactive(
-                city=city_name, country=country_name,
+            geojson_path = get_geojson_path_from_geoboundaries(
+                city=city_name, 
+                country=country_name,
+                country_code=country_code,
+                interactive=interactive,
             )
         if shp_path is None:
             try:
