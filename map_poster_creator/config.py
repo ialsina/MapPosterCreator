@@ -47,6 +47,7 @@ class paths:
     geofabrik_tree_nw = data_dir / "geofabrik_tree.nw"
     geofabrik_tree_txt = data_dir / "geofabrik_tree.txt"
     geofabrik_urls = data_dir / "geofabrik_urls.json"
+    geoboundaries_path  = data_dir / "geoBoundariesCGAZ_ADM2.geojson"
     shp_path = (data_dir if config.keep_shp_files else _TEMP_DIR / "mapoc") / "shp"
     geojson_path = (
         data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc"

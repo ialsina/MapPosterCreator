@@ -2,7 +2,7 @@ import json
 import logging
 from dataclasses import dataclass
 
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class MapGeometry:
     center: list[float]
 
 
-def get_polygon_from_geojson(geojson_path: str) -> Polygon:
+def get_polygon_from_geojson(geojson_path: str) -> Polygon | MultiPolygon:
     with open(geojson_path) as gjf:
         features: list = json.load(gjf).get("features")
 
@@ -33,25 +33,30 @@ def get_polygon_from_geojson(geojson_path: str) -> Polygon:
         )
 
     geometry: dict = first_feature.get("geometry")
-    if not geometry.get("type") == "Polygon":
+    geometry_type = geometry.get("type")
+
+    if geometry_type not in ("Polygon", "MultiPolygon"):
         raise ValueError(
-            f"Invalid geometry type {first_feature.get('type')}. Expected 'Polygon'"
+            f"Invalid geometry type {geometry_type}. Expected 'Polygon' or 'MultiPolygon'"
         )
 
     coordinates: list = geometry.get("coordinates")
     if not coordinates:
         raise ValueError("Coordinates not found. Check GeoJSON")
 
-    if len(coordinates) > 1:
-        logger.warning(f"Found {len(coordinates)} polygons. Be use first")
-
-    first_coords, *_ = coordinates
-    polygon = Polygon(first_coords)
+    if geometry_type == "MultiPolygon":
+        polygons = [Polygon(poly_coords[0]) for poly_coords in coordinates]
+        polygon = MultiPolygon(polygons)
+    else:
+        if len(coordinates) > 1:
+            logger.warning(f"Found {len(coordinates)} coordinate rings. Using first")
+        first_coords, *_ = coordinates
+        polygon = Polygon(first_coords)
 
     return polygon
 
 
-def get_map_geometry_from_poly(poly: Polygon) -> MapGeometry:
+def get_map_geometry_from_poly(poly: Polygon | MultiPolygon) -> MapGeometry:
     x1, y1, x2, y2 = poly.bounds
     top = max(y1, y2)
     bottom = min(y1, y2)
