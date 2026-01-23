@@ -286,16 +286,31 @@ def _get_city_polygon_from_geoboundaries(city_series: Series) -> Polygon | Multi
 
 def _polygon_to_geojson_file(geometry: Polygon | MultiPolygon, filepath: Path) -> None:
     """Save a Polygon or MultiPolygon to a GeoJSON file."""
+    def convert_coord(coord):
+        """Convert a coordinate to [lon, lat] format."""
+        try:
+            # Try to convert to tuple/list first if it's a numpy array or similar
+            if hasattr(coord, 'tolist'):
+                coord = coord.tolist()
+            # Handle tuple, list, or any sequence
+            if hasattr(coord, '__getitem__') and hasattr(coord, '__len__'):
+                if len(coord) >= 2:
+                    return [float(coord[0]), float(coord[1])]
+            # If it's already a float or single value, that's an error
+            raise ValueError(f"Unexpected coordinate format: {coord} (type: {type(coord)})")
+        except (TypeError, IndexError, ValueError) as e:
+            raise ValueError(f"Error converting coordinate {coord}: {e}") from e
+    
     if isinstance(geometry, MultiPolygon):
         # MultiPolygon: convert each polygon's exterior coordinates
         coordinates = []
         for poly in geometry.geoms:
-            poly_coords = [[float(coord[0]), float(coord[1])] for coord in poly.exterior.coords]
+            poly_coords = [convert_coord(coord) for coord in poly.exterior.coords]
             coordinates.append(poly_coords)
         geometry_type = "MultiPolygon"
     else:
         # Polygon: convert exterior coordinates
-        coordinates = [[float(coord[0]), float(coord[1])] for coord in geometry.exterior.coords]
+        coordinates = [convert_coord(coord) for coord in geometry.exterior.coords]
         coordinates = [coordinates]  # Wrap in array for Polygon format
         geometry_type = "Polygon"
     
