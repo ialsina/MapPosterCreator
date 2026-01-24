@@ -1,12 +1,15 @@
 colour
 descartes
 ete3
+fastapi
 geopandas
 matplotlib
 pandas
 pyyaml
+python-multipart
 requests
 shapely
 tabulate
 unidecode
+uvicorn
 wget
