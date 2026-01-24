@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -5,6 +6,7 @@ from geopandas import GeoDataFrame
 from shapely.geometry import MultiPolygon, Polygon
 
 from map_poster_creator.colorscheme import ColorScheme
+from map_poster_creator.data import polygon_from_coordinates
 from map_poster_creator.geojson import (
     MapGeometry,
     get_map_geometry_from_poly,
@@ -24,8 +26,14 @@ class shp_filename:
 
 
 @log_processing
-def _get_boundary_shape(geojson) -> tuple[Polygon | MultiPolygon, MapGeometry]:
-    poly = get_polygon_from_geojson(geojson)
+def _get_boundary_shape(
+    geojson_or_polygon: Path | str | Polygon | MultiPolygon,
+) -> tuple[Polygon | MultiPolygon, MapGeometry]:
+    """Extract polygon and geometry from a GeoJSON path or polygon object."""
+    if isinstance(geojson_or_polygon, (Polygon, MultiPolygon)):
+        poly = geojson_or_polygon
+    else:
+        poly = get_polygon_from_geojson(geojson_or_polygon)
     geometry = get_map_geometry_from_poly(poly)
     return poly, geometry
 
@@ -49,15 +57,14 @@ def _preprocessing_roads(poly: Polygon | MultiPolygon, gdf: GeoDataFrame) -> Geo
 
 def create_poster(
     shp_dir: Path,
-    geojson_path: Path,
+    geojson_path: Path | str | Polygon | MultiPolygon,
     color: ColorScheme,
     width: int | float,
     dpi: int,
     output: Path,
 ):
-    poly, geometry = _get_boundary_shape(geojson=geojson_path)
-    print(poly)
-    print(geometry)
+    """Create a map poster from a polygon boundary."""
+    poly, geometry = _get_boundary_shape(geojson_or_polygon=geojson_path)
     roads = _preprocessing_roads(
         poly=poly,
         gdf=GeoDataFrame.from_file(shp_dir / shp_filename.roads, encoding="utf-8"),
@@ -79,4 +86,34 @@ def create_poster(
         dpi=dpi,
         width=width,
         cscheme=color,
+    )
+
+
+def create_poster_from_coordinates(
+    shp_dir: Path,
+    coordinates: Sequence[Sequence[float]],
+    color: ColorScheme,
+    width: int | float,
+    dpi: int,
+    output: Path,
+    geojson_output_path: Path | None = None,
+):
+    """Create a poster from a list of coordinates defining a polygon."""
+    polygon = polygon_from_coordinates(coordinates)
+
+    if geojson_output_path is not None:
+        from map_poster_creator.data import _polygon_to_geojson_file
+
+        _polygon_to_geojson_file(polygon, geojson_output_path)
+        geojson_or_polygon = geojson_output_path
+    else:
+        geojson_or_polygon = polygon
+
+    create_poster(
+        shp_dir=shp_dir,
+        geojson_path=geojson_or_polygon,
+        color=color,
+        width=width,
+        dpi=dpi,
+        output=output,
     )

@@ -23,6 +23,9 @@ from map_poster_creator.data import (
     download_shp_interactive,
     find_download_shp,
     get_geojson_path_from_geoboundaries,
+    create_geojson_from_points,
+    read_coordinates_from_file,
+    polygon_from_coordinates,
 )
 
 logging.basicConfig(
@@ -49,9 +52,14 @@ def _add_poster_subparsers(subparser_group) -> None:
     )
     poster_parser.add_argument(
         action="store",
-        help=("City to draw. Required if shp_path is not passed."),
+        help=(
+            "City to draw. Required if shp_path is not passed and --coordinates-file is not used. "
+            "When using --coordinates-file, city is optional but recommended to automatically find the correct SHP region."
+        ),
         metavar="CITY",
         dest="city",
+        nargs="?",
+        default=None,
     )
     poster_parser.add_argument(
         "-c",
@@ -116,6 +124,19 @@ def _add_poster_subparsers(subparser_group) -> None:
             'Type "mapoc browse geojson" to create and download.'
         ),
         metavar="GEOJSON_PATH",
+    )
+    poster_parser.add_argument(
+        "--coordinates-file",
+        default=None,
+        action="store",
+        required=False,
+        help=(
+            "Path to file containing polygon coordinates. "
+            "Supports JSON array format ([[lon,lat],...]), "
+            "CSV format (lon,lat per line), or space-separated (lon lat per line). "
+            "Coordinates should be in [longitude, latitude] format."
+        ),
+        metavar="COORDINATES_FILE",
     )
     poster_parser.add_argument(
         "--colors",
@@ -306,6 +327,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
     city_name, country_name = _split_city_country(args.city)
     shp_path: str | Path | None = args.shp_path
     geojson_path: str | Path | None = args.geojson_path
+    coordinates_file: str | Path | None = getattr(args, 'coordinates_file', None)
     colors: Sequence[str] = args.colors
     output_prefix: str | None = args.output_prefix
     output_dir: Path = paths.output_dir
@@ -318,33 +340,64 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
         country_code = None
     interactive: bool = getattr(args, 'interactive', False)
 
-    if city_name is None:
-        if shp_path is None or geojson_path is None:
-            print_help()
-            return
-    else:
-        if geojson_path is None:
-            geojson_path = get_geojson_path_from_geoboundaries(
+    if coordinates_file is not None:
+        if geojson_path is not None:
+            raise ValueError(
+                "Cannot specify both --geojson-path and --coordinates-file. "
+                "Please use only one."
+            )
+        try:
+            coordinates = read_coordinates_from_file(coordinates_file)
+            # Create polygon object directly (no file creation)
+            polygon_from_coords = polygon_from_coordinates(coordinates)
+            # Optionally save to file if output_prefix is provided (for debugging/inspection)
+            if output_prefix:
+                geojson_path = create_geojson_from_points(
+                    coordinates,
+                    name=output_prefix
+                )
+            else:
+                # Use polygon object directly
+                geojson_path = polygon_from_coords
+        except Exception as e:
+            raise ValueError(
+                f"Error reading coordinates from file {coordinates_file}: {e}"
+            ) from e
+
+    # Determine geojson_path if not set
+    if geojson_path is None:
+        if city_name is None:
+            raise ValueError(
+                "Either CITY, --geojson-path, or --coordinates-file must be provided."
+            )
+        geojson_path = get_geojson_path_from_geoboundaries(
+            city=city_name, 
+            country=country_name,
+            country_code=country_code,
+            interactive=interactive,
+        )
+
+    # Determine shp_path if not set
+    if shp_path is None:
+        if city_name is None:
+            raise ValueError(
+                "When using --coordinates-file or --geojson-path without a city name, "
+                "you must also provide --shp-path to specify the region's shapefile directory."
+            )
+        try:
+            shp_path = find_download_shp(
                 city=city_name,
                 country=country_name,
-                country_code=country_code,
-                interactive=interactive,
+                interactive=False,
+                calculate_point=True,
             )
-        if shp_path is None:
-            try:
-                shp_path = find_download_shp(
-                    city=city_name,
-                    country=country_name,
-                    interactive=False,
-                    calculate_point=True,
-                )
-            except (ValueError, NotImplementedError):
-                shp_path = download_shp_interactive(
-                    city=city_name, country=country_name
-                )
+        except (ValueError, NotImplementedError):
+            shp_path = download_shp_interactive(
+                city=city_name, country=country_name
+            )
 
     if output_prefix is None:
-        output_prefix = city_name
+        output_prefix = city_name or "polygon_poster"
 
     output_dir.mkdir(parents=True, exist_ok=True)
     for cscheme_name in colors:
@@ -353,7 +406,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
         try:
             create_poster(
                 shp_dir=Path(shp_path),
-                geojson_path=Path(geojson_path),
+                geojson_path=geojson_path,
                 color=get_colorscheme(cscheme_name),
                 width=width_in,
                 dpi=args.dpi,

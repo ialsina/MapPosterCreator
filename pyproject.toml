@@ -17,14 +17,17 @@ dependencies = [
     "colour",
     "descartes",
     "ete3",
+    "fastapi",
     "geopandas",
     "shapely",
     "matplotlib",
     "pandas",
     "pyyaml",
+    "python-multipart",
     "requests",
     "tabulate",
     "unidecode",
+    "uvicorn",
     "wget",
 ]
 keywords = ["map", "poster", "osm", "geopandas"]

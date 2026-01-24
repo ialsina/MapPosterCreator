@@ -333,6 +333,145 @@ def _polygon_to_geojson_file(geometry: Polygon | MultiPolygon, filepath: Path) -
         json.dump(geojson, f)
 
 
+def read_coordinates_from_file(file_path: Path | str) -> Sequence[Sequence[float]]:
+    """
+    Read coordinates from a file.
+    
+    The file can be in one of these formats:
+    1. JSON array: [[lon1, lat1], [lon2, lat2], ...]
+    2. CSV: lon,lat (one coordinate per line)
+    3. Text: lon lat (one coordinate per line, space-separated)
+    
+    Args:
+        file_path: Path to the file containing coordinates.
+    
+    Returns:
+        List of coordinates as [lon, lat] pairs.
+    """
+    file_path = Path(file_path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Coordinate file not found: {file_path}")
+    
+    content = file_path.read_text(encoding="utf-8").strip()
+    
+    # Try JSON first
+    try:
+        coords = json.loads(content)
+        if isinstance(coords, list) and len(coords) > 0:
+            return coords
+    except json.JSONDecodeError:
+        pass
+    
+    # Try CSV or space-separated
+    coordinates = []
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        # Try comma-separated first
+        if ',' in line:
+            parts = [p.strip() for p in line.split(',')]
+        else:
+            # Space-separated
+            parts = line.split()
+        if len(parts) >= 2:
+            try:
+                lon, lat = float(parts[0]), float(parts[1])
+                coordinates.append([lon, lat])
+            except ValueError:
+                continue
+    
+    if not coordinates:
+        raise ValueError(
+            f"Could not parse coordinates from file {file_path}. "
+            "Expected JSON array, CSV (lon,lat), or space-separated (lon lat) format."
+        )
+    
+    return coordinates
+
+def polygon_from_coordinates(
+    coordinates: Sequence[Sequence[float]]
+) -> Polygon:
+    """
+    Create a Polygon object from a list of points defining a polygon.
+    
+    Args:
+        coordinates: List of coordinates, each as [lon, lat] or (lon, lat).
+                     The polygon will be automatically closed if first != last point.
+    
+    Returns:
+        Polygon object.
+    
+    Example:
+        >>> coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
+        >>> polygon = polygon_from_coordinates(coords)
+    """
+    if len(coordinates) < 3:
+        raise ValueError(
+            f"A polygon requires at least 3 points, but got {len(coordinates)}."
+        )
+    
+    # Convert coordinates to list of [lon, lat] pairs
+    coord_list = []
+    for coord in coordinates:
+        if isinstance(coord, (list, tuple)) and len(coord) >= 2:
+            coord_list.append([float(coord[0]), float(coord[1])])
+        else:
+            raise ValueError(
+                f"Invalid coordinate format: {coord}. Expected [lon, lat] or (lon, lat)."
+            )
+    
+    # Ensure polygon is closed (first point == last point)
+    if coord_list[0] != coord_list[-1]:
+        coord_list.append(coord_list[0])
+    
+    # Create and return Polygon from coordinates
+    return Polygon(coord_list)
+
+def create_geojson_from_points(
+    coordinates: Sequence[Sequence[float]],
+    output_path: Path | None = None,
+    name: str | None = None,
+) -> Path:
+    """
+    Create a GeoJSON file from a list of points defining a polygon.
+    
+    Args:
+        coordinates: List of coordinates, each as [lon, lat] or (lon, lat).
+                     The polygon will be automatically closed if first != last point.
+        output_path: Optional path to save the GeoJSON file. If not provided,
+                     a temporary file will be created.
+        name: Optional name for the file (used if output_path is not provided).
+    
+    Returns:
+        Path to the created GeoJSON file.
+    
+    Example:
+        >>> coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
+        >>> geojson_path = create_geojson_from_points(coords, name="custom_polygon")
+    """
+    # Create polygon from coordinates
+    polygon = polygon_from_coordinates(coordinates)
+    
+    # Determine output path
+    if output_path is None:
+        path = paths.geojson_path
+        path.mkdir(parents=True, exist_ok=True)
+        if name:
+            filename = f"{name}.geojson"
+        else:
+            # Generate a temporary name
+            filename = "polygon_from_points.geojson"
+        output_path = path / filename
+    else:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Save as GeoJSON
+    _polygon_to_geojson_file(polygon, output_path)
+    return output_path
+
+
 def get_geojson_path_from_geoboundaries(
     city: str,
     country: str | None = None,
