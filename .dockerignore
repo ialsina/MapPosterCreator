@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+
+# Output files
+pics/
+*.png
+*.jpg
+*.jpeg
+
+# Data directories (will be created in container)
+.mapoc/
+mapoc/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
