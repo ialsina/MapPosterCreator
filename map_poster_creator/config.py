@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import os
 import tempfile
 import yaml
 
@@ -24,16 +25,63 @@ class Config:
         return cls(**dct)
 
 
+def get_data_dir() -> Path:
+    """Get data directory from environment variable, config file, or default."""
+    # Check environment variable first (highest priority)
+    env_data_dir = os.environ.get("MAPOC_DATA_DIR")
+    if env_data_dir:
+        return Path(env_data_dir).expanduser().resolve()
+
+    # Then check config file
+    with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
+        _config_dct = yaml.safe_load(cf) or {}
+
+    if "data_dir" in _config_dct:
+        return Path(_config_dct["data_dir"]).expanduser().resolve()
+
+    # Default fallback
+    return _DEFAULT_DATA_DIR
+
+
+def get_output_dir() -> Path:
+    """Get output directory from environment variable, config file, or default."""
+    # Check environment variable first (highest priority)
+    env_output_dir = os.environ.get("MAPOC_OUTPUT_DIR")
+    if env_output_dir:
+        return Path(env_output_dir).expanduser().resolve()
+
+    # Then check config file
+    with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
+        _config_dct = yaml.safe_load(cf) or {}
+
+    if "output_dir" in _config_dct:
+        return Path(_config_dct["output_dir"]).expanduser().resolve()
+
+    # Default fallback
+    return _DEFAULT_OUTPUT_DIR
+
+
+# Load config with environment variable support
 with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
     _config_dct = yaml.safe_load(cf) or {}
 
+# Override data_dir and output_dir from environment if set
+if os.environ.get("MAPOC_DATA_DIR"):
+    _config_dct["data_dir"] = str(get_data_dir())
+if os.environ.get("MAPOC_OUTPUT_DIR"):
+    _config_dct["output_dir"] = str(get_output_dir())
+
 config = Config.from_dict(_config_dct)
+
+# Compute actual data and output directories (respecting environment variables)
+_actual_data_dir = get_data_dir()
+_actual_output_dir = get_output_dir()
 
 
 @dataclass(frozen=True)
 class paths:
-    data_dir = config.data_dir
-    output_dir = config.output_dir
+    data_dir = _actual_data_dir
+    output_dir = _actual_output_dir
     colors = data_dir / "colors.json"
     countries = data_dir / "countries.csv"
     cities_gh_datasets = data_dir / "cities_gh_datasets.csv"
