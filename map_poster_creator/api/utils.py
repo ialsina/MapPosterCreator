@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
+from fastapi import HTTPException
 from shapely.geometry import Point, Polygon
 
 from map_poster_creator.data.core import (
@@ -64,8 +65,6 @@ def find_shp_from_polygon(
         pass
 
     # If all else fails, raise an error
-    from fastapi import HTTPException
-
     raise HTTPException(
         status_code=400,
         detail="Could not automatically determine SHP region. Please provide 'shp_path' or 'city' parameter.",
