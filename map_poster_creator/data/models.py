@@ -14,10 +14,13 @@ from map_poster_creator.data.base import CachedModel
 class CityDataFrame(CachedModel[DataFrame]):
     """Model for loading city data from GeoNames."""
 
+    is_tiny_feature = False  # Requires full installation
+
     def fetch(self) -> DataFrame:
         if not paths.cities_geonames_1000.exists():
             raise FileNotFoundError(
-                "Could not find city data. Please download using the appropriate script."
+                "Could not find city data. "
+                "If running in a container, this feature may be unavailable."
             )
         return read_csv(
             paths.cities_geonames_1000, index_col=0, low_memory=False
@@ -27,10 +30,13 @@ class CityDataFrame(CachedModel[DataFrame]):
 class CountryDataFrame(CachedModel[DataFrame]):
     """Model for loading country data."""
 
+    is_tiny_feature = False  # Requires full installation
+
     def fetch(self) -> DataFrame:
         if not paths.countries.exists():
             raise FileNotFoundError(
-                "Could not find country data. Please download using the appropriate script."
+                "Could not find country data. "
+                "If running in a container, this feature may be unavailable."
             )
         return read_csv(paths.countries)
 
@@ -38,14 +44,28 @@ class CountryDataFrame(CachedModel[DataFrame]):
 class RegionsTree(CachedModel[Tree]):
     """Model for loading the regions tree from GeoFabrik."""
 
+    is_tiny_feature = True  # Available in tiny mode
+
     def fetch(self) -> Tree:
+        if not paths.geofabrik_tree_nw.exists():
+            raise FileNotFoundError(
+                "Could not find region tree data. "
+                "If running in a container, this feature may be unavailable."
+            )
         return Tree(str(paths.geofabrik_tree_nw), format=1)
 
 
 class GeofabrikUrls(CachedModel[Mapping[str, str]]):
     """Model for loading GeoFabrik URLs mapping."""
 
+    is_tiny_feature = True  # Available in tiny mode
+
     def fetch(self) -> Mapping[str, str]:
+        if not paths.geofabrik_urls.exists():
+            raise FileNotFoundError(
+                "Could not find GeoFabrik URLs data. "
+                "If running in a container, this feature may be unavailable."
+            )
         with open(paths.geofabrik_urls, "r", encoding="utf-8") as rf:
             return json.load(rf)
 
@@ -53,10 +73,13 @@ class GeofabrikUrls(CachedModel[Mapping[str, str]]):
 class GeoboundariesGDF(CachedModel[GeoDataFrame]):
     """Model for loading geoboundaries GeoDataFrame."""
 
+    is_tiny_feature = False  # Requires full installation
+
     def fetch(self) -> GeoDataFrame:
         if not paths.geoboundaries_path.exists():
             raise FileNotFoundError(
-                "Could not find geoboundaries data. Please ensure geoBoundariesCGAZ_ADM2.geojson exists."
+                "Could not find geoboundaries data. "
+                "If running in a container, this feature may be unavailable."
             )
         gdf = GeoDataFrame.from_file(paths.geoboundaries_path)
         gdf = gdf.to_crs("EPSG:4326")
@@ -66,10 +89,13 @@ class GeoboundariesGDF(CachedModel[GeoDataFrame]):
 class CitiesGeonames(CachedModel[DataFrame]):
     """Model for loading cities GeoNames DataFrame."""
 
+    is_tiny_feature = False  # Requires full installation
+
     def fetch(self) -> DataFrame:
         if not paths.cities_geonames_1000.exists():
             raise FileNotFoundError(
-                "Could not find city data. Please download using the appropriate script."
+                "Could not find city data. "
+                "If running in a container, this feature may be unavailable."
             )
         return read_csv(paths.cities_geonames_1000, index_col=0, low_memory=False)
 
