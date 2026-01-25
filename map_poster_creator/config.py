@@ -26,39 +26,49 @@ class Config:
 
 
 def get_data_dir() -> Path:
-    """Get data directory from environment variable, config file, or default."""
+    """Get data directory from environment variable, config file, or default.
+    Creates the directory if it doesn't exist."""
     # Check environment variable first (highest priority)
     env_data_dir = os.environ.get("MAPOC_DATA_DIR")
     if env_data_dir:
-        return Path(env_data_dir).expanduser().resolve()
+        data_dir = Path(env_data_dir).expanduser().resolve()
+    else:
+        # Then check config file
+        with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
+            _config_dct = yaml.safe_load(cf) or {}
 
-    # Then check config file
-    with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
-        _config_dct = yaml.safe_load(cf) or {}
+        if "data_dir" in _config_dct:
+            data_dir = Path(_config_dct["data_dir"]).expanduser().resolve()
+        else:
+            # Default fallback
+            data_dir = _DEFAULT_DATA_DIR
 
-    if "data_dir" in _config_dct:
-        return Path(_config_dct["data_dir"]).expanduser().resolve()
-
-    # Default fallback
-    return _DEFAULT_DATA_DIR
+    # Create directory if it doesn't exist
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
 
 
 def get_output_dir() -> Path:
-    """Get output directory from environment variable, config file, or default."""
+    """Get output directory from environment variable, config file, or default.
+    Creates the directory if it doesn't exist."""
     # Check environment variable first (highest priority)
     env_output_dir = os.environ.get("MAPOC_OUTPUT_DIR")
     if env_output_dir:
-        return Path(env_output_dir).expanduser().resolve()
+        output_dir = Path(env_output_dir).expanduser().resolve()
+    else:
+        # Then check config file
+        with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
+            _config_dct = yaml.safe_load(cf) or {}
 
-    # Then check config file
-    with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
-        _config_dct = yaml.safe_load(cf) or {}
+        if "output_dir" in _config_dct:
+            output_dir = Path(_config_dct["output_dir"]).expanduser().resolve()
+        else:
+            # Default fallback
+            output_dir = _DEFAULT_OUTPUT_DIR
 
-    if "output_dir" in _config_dct:
-        return Path(_config_dct["output_dir"]).expanduser().resolve()
-
-    # Default fallback
-    return _DEFAULT_OUTPUT_DIR
+    # Create directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
 
 
 # Load config with environment variable support
