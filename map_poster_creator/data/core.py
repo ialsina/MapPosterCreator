@@ -1,17 +1,8 @@
 """Core data processing functions."""
 
-import os
-import subprocess
 from pathlib import Path
-import platform
-from requests import Session
-from requests.adapters import HTTPAdapter
-from typing import Optional
-from urllib.parse import urljoin
-import wget
-from zipfile import ZipFile
+from typing import Optional, Callable
 
-from bs4 import BeautifulSoup, Tag
 from ete3 import Tree
 from shapely.geometry import Point
 from pandas import DataFrame, Series
@@ -25,23 +16,18 @@ from map_poster_creator.data.getters import (
     get_region_polygons,
     get_region_centroids,
 )
-# Import geometry functions locally to avoid circular imports
-# (geometry.py imports from data.getters, which creates a cycle)
+from map_poster_creator.data.utils import (
+    _ask_reuse,
+    _download_extract_shp,
+    is_valid_download_url,
+)
 
-
-GEOJSON_URL = "https://geojson.io/#map=10/{latitude}/{longitude}"
-GEOFABRIK_URL = "https://download.geofabrik.de"
-GEOFABRIK_HREF_ATTRIBUTE_END = "latest-free.shp.zip"
-
-
-def is_valid_download_url(url: str) -> bool:
-    """Check if URL is a valid GeoFabrik download URL."""
-    return url.endswith(GEOFABRIK_HREF_ATTRIBUTE_END)
-
-
-def is_valid_a_tag(a_tag: Tag) -> bool:
-    """Check if an HTML tag is a valid download link."""
-    return is_valid_download_url(a_tag.attrs["href"])
+# Geometry imports at module level (no circular dependency)
+from map_poster_creator.data.geometry import _get_city_polygon_from_geoboundaries
+from map_poster_creator.geometry import (
+    is_point_in_polygon,
+    _polygon_to_geojson_file,
+)
 
 
 def _search_fun(df: DataFrame, search_term: str) -> Series:
@@ -65,6 +51,7 @@ def resolve_city(
     interactive: bool = True,
     element_if_one: bool = True,
     first: bool = False,
+    interactive_callback: Optional[Callable[[DataFrame], Series]] = None,
 ) -> DataFrame | Series | None:
     """
     Resolve a city name to a city record.
@@ -72,9 +59,11 @@ def resolve_city(
     Args:
         city: City name to search for
         country: Optional country name to narrow search
-        interactive: If True, prompt user when multiple cities match
+        interactive: If True, prompt user when multiple cities match (requires interactive_callback)
         element_if_one: If True and only one match, return the Series directly
         first: If True, always return the first (highest population) match
+        interactive_callback: Optional callback function for interactive city selection.
+                            Called with DataFrame of candidates, should return selected Series.
 
     Returns:
         DataFrame, Series, or None depending on matches and parameters
@@ -99,53 +88,14 @@ def resolve_city(
         return candidates.iloc[0]
     # Interactive mode: prompt if multiple candidates
     if candidates.shape[0] > 1:
-        from map_poster_creator.data.interactive import interactive_resolve_city
-
-        return interactive_resolve_city(candidates)
+        if interactive_callback is not None:
+            return interactive_callback(candidates)
+        # No callback provided, return first (non-interactive fallback)
+        return candidates.iloc[0]
     # Single candidate or first=True: return the first one
     if (candidates.shape[0] == 1 and element_if_one) or first:
         return candidates.iloc[0]
     return candidates
-
-
-def _open_text_editor(file_path):
-    """
-    Opens a text editor with the specified file for the user to edit.
-    Waits for the user to close the editor before continuing.
-    """
-    if platform.system() == "Windows":
-        subprocess.run(["notepad", file_path], check=False)
-    elif platform.system() == "Linux":
-        subprocess.run(["nano", file_path], check=False)
-    elif platform.system() == "Darwin":  # macOS
-        subprocess.run(["open", "-a", "TextEdit", file_path], check=False)
-    else:
-        raise SystemError(f"Unknown platform: {platform.system()}")
-
-
-def _remove_hash_trailing_lines(file):
-    """Remove lines starting with '#' from a file."""
-    file.seek(0)
-    edited_content = file.read().decode("utf-8").splitlines()
-    filtered_content = [
-        line for line in edited_content if not line.strip().startswith("#")
-    ]
-    file.seek(0)
-    file.truncate()
-    file.write("".join(filtered_content).encode("utf-8"))
-
-
-def _ask_reuse(city):
-    """Ask user if they want to reuse an existing GeoJSON file."""
-    print(f"Geojson file found for {city}.")
-    return input("Reuse? [Y/n] >").lower() not in {"n", "no", "false", "0"}
-
-
-def _exit_if_empty_file(file):
-    """Exit if the file is empty."""
-    file.seek(0)
-    if not file.read():
-        raise SystemExit
 
 
 def get_geojson_path_from_geoboundaries(
@@ -153,6 +103,7 @@ def get_geojson_path_from_geoboundaries(
     country: Optional[str] = None,
     country_code: Optional[str] = None,
     interactive: bool = False,
+    interactive_callback: Optional[Callable[[DataFrame], Series]] = None,
 ) -> Path:
     """
     Get geojson path by automatically finding the city polygon from geoboundaries.
@@ -162,6 +113,8 @@ def get_geojson_path_from_geoboundaries(
         country: Country name (optional, used if country_code is not provided)
         country_code: Two-letter country code (optional, takes precedence over country)
         interactive: If True, prompt user when multiple cities match. If False, use highest population.
+        interactive_callback: Optional callback function for interactive city selection.
+                            Called with DataFrame of candidates, should return selected Series.
 
     Returns:
         Path to the generated GeoJSON file
@@ -193,16 +146,21 @@ def get_geojson_path_from_geoboundaries(
             city_series = candidates.iloc[0]
         elif candidates.shape[0] > 1:
             # Interactive mode with multiple candidates: prompt user
-            from map_poster_creator.data.interactive import interactive_resolve_city
-
-            city_series = interactive_resolve_city(candidates)
+            if interactive and interactive_callback is not None:
+                city_series = interactive_callback(candidates)
+            else:
+                city_series = candidates.iloc[0]
         else:
             # Single candidate: take it
             city_series = candidates.iloc[0]
     else:
         # Use existing resolve_city function
         city_series = resolve_city(
-            city=city, country=country, interactive=interactive, first=True
+            city=city,
+            country=country,
+            interactive=interactive,
+            first=True,
+            interactive_callback=interactive_callback,
         )
         if city_series is None:
             raise ValueError(
@@ -229,10 +187,6 @@ def get_geojson_path_from_geoboundaries(
             return filepath
 
     # Get polygon from geoboundaries
-    # Import from data.geometry (data-dependent) and geometry (pure utility)
-    from map_poster_creator.data.geometry import _get_city_polygon_from_geoboundaries
-    from map_poster_creator.geometry import _polygon_to_geojson_file
-
     try:
         polygon = _get_city_polygon_from_geoboundaries(city_series)
     except ValueError as e:
@@ -244,50 +198,6 @@ def get_geojson_path_from_geoboundaries(
     # Save polygon as geojson
     _polygon_to_geojson_file(polygon, filepath)
     return filepath
-
-
-def _find_shp_url(region_url: str) -> str:
-    """Find the SHP download URL from a GeoFabrik region page."""
-    with Session() as session:
-        session.mount("http://", HTTPAdapter(max_retries=3))
-        session.mount("https://", HTTPAdapter(max_retries=3))
-        response = session.get(region_url)
-        response.encoding = response.apparent_encoding
-        if response.status_code != 200:
-            raise IOError(
-                f"Could not fetch resource (status code: {response.status_code}): "
-                + str(region_url)
-            )
-        soup = BeautifulSoup(response.text, "html.parser")
-        for a_tag in soup.find_all("a", recursive=True):
-            if is_valid_a_tag(a_tag):
-                return urljoin(region_url, a_tag.attrs["href"])
-        raise ValueError(f"Couldn't find a satisfying a tag in {region_url}.")
-
-
-def _get_extract_dir(path: Path, fname: str) -> Path:
-    """Get the extraction directory path for a zip file."""
-    return path / Path(fname).stem
-
-
-def _download_extract_shp(shp_url: str) -> Path:
-    """Download and extract a SHP zip file."""
-    path = paths.shp_path
-    path.mkdir(parents=True, exist_ok=True)
-    fname = shp_url.split("/")[-1]
-    if _get_extract_dir(path, fname).exists():
-        return _get_extract_dir(path, fname)
-    print(f"Downloading in: {path}")
-    fname = wget.download(shp_url, out=str(path))
-    zip_fpath = path / fname
-    print(f"New zip file: {zip_fpath}")
-    extract_dir = _get_extract_dir(path, fname)
-    extract_dir.mkdir(parents=False, exist_ok=False)
-    print(f"Extracting in: {extract_dir}")
-    with ZipFile(zip_fpath, "r") as zf:
-        zf.extractall(path=str(extract_dir))
-    os.remove(zip_fpath)
-    return extract_dir
 
 
 def _extract_shp_url(node: Tree) -> str:
@@ -303,9 +213,6 @@ def _calculate_point_choose(
     point: Point, sorted_distances, location_name: str = "point"
 ) -> Tree:
     """Calculate which region to choose based on point-in-polygon check."""
-    # Import locally to avoid circular import
-    from map_poster_creator.geometry import is_point_in_polygon
-
     for region_node, _ in sorted_distances:
         for region_polygon in get_region_polygons(region_node):
             if is_point_in_polygon(point, region_polygon):
@@ -318,6 +225,7 @@ def find_download_shp_from_point(
     calculate_point: Optional[bool] = False,
     interactive: Optional[bool] = False,
     location_name: str = "point",
+    interactive_callback: Optional[Callable[[list], Tree]] = None,
 ) -> Path:
     """
     Find and download the SHP file for a geographic point.
@@ -325,8 +233,10 @@ def find_download_shp_from_point(
     Args:
         point: Geographic point (Point with longitude, latitude)
         calculate_point: If True, use point-in-polygon check to find region
-        interactive: If True, prompt user to choose region
+        interactive: If True, prompt user to choose region (requires interactive_callback)
         location_name: Name of the location for error messages (default: "point")
+        interactive_callback: Optional callback function for interactive region selection.
+                            Called with list of (region_node, distance) tuples, should return selected Tree.
 
     Returns:
         Path to the extracted SHP directory
@@ -347,9 +257,11 @@ def find_download_shp_from_point(
     if calculate_point:
         region_node = _calculate_point_choose(point, sorted_distances, location_name)
     elif interactive:
-        from map_poster_creator.data.interactive import interactive_region_choose
-
-        region_node = interactive_region_choose(sorted_distances)
+        if interactive_callback is not None:
+            region_node = interactive_callback(sorted_distances)
+        else:
+            # No callback provided, use first (non-interactive fallback)
+            region_node = sorted_distances[0][0]
     else:
         region_node = sorted_distances[0][0]
     shp_url = _extract_shp_url(region_node)
@@ -361,6 +273,8 @@ def find_download_shp(
     country: Optional[str] = None,
     calculate_point: Optional[bool] = False,
     interactive: Optional[bool] = False,
+    interactive_callback: Optional[Callable[[DataFrame], Series]] = None,
+    region_callback: Optional[Callable[[list], Tree]] = None,
 ) -> Path:
     """
     Find and download the SHP file for a city.
@@ -369,13 +283,19 @@ def find_download_shp(
         city: City name
         country: Optional country name
         calculate_point: If True, use point-in-polygon check to find region
-        interactive: If True, prompt user to choose region
+        interactive: If True, prompt user to choose region (requires callbacks)
+        interactive_callback: Optional callback for interactive city selection
+        region_callback: Optional callback for interactive region selection
 
     Returns:
         Path to the extracted SHP directory
     """
     city_series = resolve_city(
-        city=city, country=country, interactive=interactive, first=True
+        city=city,
+        country=country,
+        interactive=interactive,
+        first=True,
+        interactive_callback=interactive_callback,
     )
     if city_series is None:
         raise ValueError(
@@ -392,4 +312,5 @@ def find_download_shp(
         calculate_point=calculate_point,
         interactive=interactive,
         location_name=f'city "{city}"',
+        interactive_callback=region_callback,
     )

@@ -51,3 +51,9 @@ class paths:
     geojson_path = (
         data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc"
     ) / "geojson"
+
+
+# URL constants
+GEOJSON_URL = "https://geojson.io/#map=10/{latitude}/{longitude}"
+GEOFABRIK_URL = "https://download.geofabrik.de"
+GEOFABRIK_HREF_ATTRIBUTE_END = "latest-free.shp.zip"

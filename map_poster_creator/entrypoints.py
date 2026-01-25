@@ -367,11 +367,18 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             raise ValueError(
                 "Either CITY, --geojson-path, or --coordinates-file must be provided."
             )
+        # Pass interactive callback if interactive mode is requested
+        interactive_callback = None
+        if interactive:
+            from map_poster_creator.data.interactive import interactive_resolve_city
+
+            interactive_callback = interactive_resolve_city
         geojson_path = get_geojson_path_from_geoboundaries(
             city=city_name,
             country=country_name,
             country_code=country_code,
             interactive=interactive,
+            interactive_callback=interactive_callback,
         )
 
     # Determine shp_path if not set
@@ -382,11 +389,24 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 "you must also provide --shp-path to specify the region's shapefile directory."
             )
         try:
+            # Pass callbacks if interactive mode is requested
+            interactive_callback = None
+            region_callback = None
+            if interactive:
+                from map_poster_creator.data.interactive import (
+                    interactive_resolve_city,
+                    interactive_region_choose,
+                )
+
+                interactive_callback = interactive_resolve_city
+                region_callback = interactive_region_choose
             shp_path = find_download_shp(
                 city=city_name,
                 country=country_name,
-                interactive=False,
+                interactive=interactive,
                 calculate_point=True,
+                interactive_callback=interactive_callback,
+                region_callback=region_callback,
             )
         except (ValueError, NotImplementedError):
             shp_path = download_shp_interactive(city=city_name, country=country_name)
