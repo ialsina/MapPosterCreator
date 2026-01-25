@@ -15,3 +15,7 @@ unidecode
 uvicorn
 wget
 pre-commit
+pytest
+pytest-cov
+pytest-asyncio
+pytest-mock
