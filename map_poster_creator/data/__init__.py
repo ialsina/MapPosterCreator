@@ -13,7 +13,7 @@ from map_poster_creator.data.getters import (
     get_cities_geonames,
 )
 
-# Import core functions (including private ones for backward compatibility)
+# Import core functions (including private utility functions)
 from map_poster_creator.data.core import (
     resolve_city,
     find_download_shp,
@@ -23,7 +23,7 @@ from map_poster_creator.data.core import (
     GEOFABRIK_HREF_ATTRIBUTE_END,
     is_valid_download_url,
     is_valid_a_tag,
-    # Private functions exported for backward compatibility
+    # Private utility functions
     _open_text_editor,
     _remove_hash_trailing_lines,
     _ask_reuse,
@@ -43,8 +43,13 @@ from map_poster_creator.geometry import (
     get_map_geometry_from_poly,
 )
 
-# Import interactive function (no circular import issue)
-from map_poster_creator.interactive import download_shp_interactive
+# Import interactive functions from data.interactive (no circular import)
+from map_poster_creator.data.interactive import (
+    download_shp_interactive,
+    interactive_resolve_city,
+    browser_get_geojson_path_interactive,
+    interactive_region_choose,
+)
 
 
 __all__ = [
@@ -67,7 +72,7 @@ __all__ = [
     "GEOFABRIK_HREF_ATTRIBUTE_END",
     "is_valid_download_url",
     "is_valid_a_tag",
-    # Private functions (for backward compatibility)
+    # Private utility functions
     "_open_text_editor",
     "_remove_hash_trailing_lines",
     "_ask_reuse",
@@ -84,4 +89,7 @@ __all__ = [
     "get_map_geometry_from_poly",
     # Interactive functions
     "download_shp_interactive",
+    "interactive_resolve_city",
+    "browser_get_geojson_path_interactive",
+    "interactive_region_choose",
 ]

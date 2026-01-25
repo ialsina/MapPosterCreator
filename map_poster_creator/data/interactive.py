@@ -1,3 +1,9 @@
+"""Data-dependent interactive functions.
+
+This module contains interactive functions that depend on data access.
+These functions provide user interaction capabilities for data operations.
+"""
+
 from pathlib import Path
 from typing import Optional
 import webbrowser
@@ -6,7 +12,8 @@ from pandas import DataFrame, Series
 from ete3 import Tree
 
 from map_poster_creator.config import paths
-from map_poster_creator.data import (
+from map_poster_creator.data.getters import get_country_df
+from map_poster_creator.data.core import (
     resolve_city,
     _open_text_editor,
     _remove_hash_trailing_lines,
@@ -17,16 +24,13 @@ from map_poster_creator.data import (
     GEOJSON_URL,
     GEOFABRIK_URL,
 )
-from map_poster_creator.data.models import _country_df
-
-
-def get_country_df():
-    """Get country DataFrame from the model."""
-    return _country_df.data
 
 
 def interactive_resolve_city(df: DataFrame) -> Series:
+    """Interactively resolve a city from multiple candidates."""
+
     def row_txt(row):
+        countries = get_country_df()
         country_name = countries[countries["Code"] == row["country code"]].iloc[0][
             "Name"
         ]
@@ -35,7 +39,6 @@ def interactive_resolve_city(df: DataFrame) -> Series:
         admin_txt = ", ".join(el for el in admin_lst if el)
         return f"{row['name']}, {admin_txt}"
 
-    countries = get_country_df()
     choices = {i: row for i, (_, row) in enumerate(df.iterrows(), start=1)}
     print("Choose city:")
     print("\t" + "\n\t".join(f"{i}. {row_txt(row)}" for i, row in choices.items()))
@@ -54,6 +57,7 @@ def interactive_resolve_city(df: DataFrame) -> Series:
 def browser_get_geojson_path_interactive(
     city: str, country: Optional[str] = None
 ) -> Path:
+    """Interactively get GeoJSON path by opening browser for user to create polygon."""
     path = paths.geojson_path
     path.mkdir(parents=True, exist_ok=True)
     filepath = path / f"{city}.geojson"
@@ -85,6 +89,7 @@ def browser_get_geojson_path_interactive(
 
 
 def download_shp_interactive(city: str, country: Optional[str] = None) -> Path:
+    """Interactively download SHP file by opening browser for user to find region."""
     webbrowser.open_new_tab(GEOFABRIK_URL)
     message = (
         "# Please, navigate to the page of the region corresponding to the city of "
@@ -104,6 +109,7 @@ def download_shp_interactive(city: str, country: Optional[str] = None) -> Path:
 
 
 def interactive_region_choose(sorted_distances, num_choices=5) -> Tree:
+    """Interactively choose a region from sorted distance candidates."""
     top_regions = list(zip(*sorted_distances))[0][:num_choices]
     choices = {i: region for i, region in enumerate(top_regions, start=1)}
     print("Choose region:")
