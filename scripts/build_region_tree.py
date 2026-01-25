@@ -1,16 +1,17 @@
-import json
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from pprint import pprint
+import json
+from requests import Session, RequestException
+from requests.adapters import HTTPAdapter
 from urllib.parse import urljoin
+from pprint import pprint
+from unidecode import unidecode
+from tqdm import tqdm
+from typing import Tuple, Mapping, Sequence
 
 from bs4 import BeautifulSoup
 from ete3 import TreeNode
+
 from map_poster_creator.config import paths
-from requests import RequestException, Session
-from requests.adapters import HTTPAdapter
-from tqdm import tqdm
-from unidecode import unidecode
 
 URL = "https://download.geofabrik.de/"
 UrlsType = Mapping[str, Sequence[str]]
@@ -42,7 +43,7 @@ def _get_description(url: str, region: str) -> str:
     return f"{region:>{max_region}s}: {url:<{max_url}s}"
 
 
-def find_tree(session) -> tuple[TreeNode, UrlsType]:
+def find_tree(session) -> Tuple[TreeNode, UrlsType]:
     def navigate_node(url, region="", depth=1):
         print(_get_description(url, region), end="\r")
 

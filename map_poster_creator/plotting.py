@@ -1,5 +1,6 @@
 import math
 from pathlib import Path
+from typing import Tuple, Optional
 
 from geopandas import GeoDataFrame
 from matplotlib import pyplot as plt
@@ -34,9 +35,9 @@ def plot_and_save(
     cscheme: ColorScheme,
     geometry: MapGeometry,
     path: Path,
-    dpi: int | None = 300,
-    width: int | None = None,
-    figsize: tuple[float, float] | None = (8, 8),
+    dpi: Optional[int] = 300,
+    width: Optional[int] = None,
+    figsize: Optional[Tuple[float, float]] = (8, 8),
 ) -> None:
     plt.clf()
     if width is not None:

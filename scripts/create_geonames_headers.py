@@ -5,7 +5,6 @@ This file contains the column definitions for GeoNames cities1000.txt format.
 Based on the standard GeoNames format documentation.
 """
 
-from pathlib import Path
 from map_poster_creator.config import paths
 
 # Standard GeoNames allCountries.txt / cities1000.txt column format
@@ -31,26 +30,27 @@ timezone: the timezone id (see file timeZone.txt) varchar(40)
 modification date: date of last modification in yyyy-MM-dd format
 """
 
+
 def create_geonames_headers():
     """Create the geonames_headers.txt file if it doesn't exist."""
     headers_path = paths.geonames_headers
-    
+
     if headers_path.exists():
         print(f"File {headers_path} already exists.")
         response = input("Replace? [y/N] > ").lower()
         if response not in {"y", "yes", "true", "1"}:
             print("Skipping geonames_headers.txt creation.")
             return
-    
+
     # Ensure directory exists
     headers_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Write headers file
     with open(headers_path, "w", encoding="utf-8") as f:
         f.write(GEONAMES_HEADERS)
-    
+
     print(f"Created {headers_path}")
+
 
 if __name__ == "__main__":
     create_geonames_headers()
-

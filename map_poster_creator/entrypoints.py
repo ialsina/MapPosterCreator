@@ -1,23 +1,21 @@
+from argparse import ArgumentParser, Namespace
 import logging
+from pandas import DataFrame
+from pathlib import Path
+from tabulate import tabulate
+from typing import Callable, Tuple, Mapping, Sequence
 import sys
 import webbrowser
-from argparse import ArgumentParser, Namespace
-from collections.abc import Callable, Mapping, Sequence
-from pathlib import Path
 
-from pandas import DataFrame
-from tabulate import tabulate
-
-from map_poster_creator import __version__
-from map_poster_creator.colorscheme import (
-    ColorScheme,
-    add_colorscheme,
-    get_colorscheme,
-    get_colorschemes,
-)
-from map_poster_creator.config import config, paths
+from map_poster_creator.config import paths, config
 from map_poster_creator.core import (
     create_poster,
+)
+from map_poster_creator.colorscheme import (
+    ColorScheme,
+    get_colorscheme,
+    get_colorschemes,
+    add_colorscheme,
 )
 from map_poster_creator.data import (
     download_shp_interactive,
@@ -27,6 +25,7 @@ from map_poster_creator.data import (
     read_coordinates_from_file,
     polygon_from_coordinates,
 )
+from map_poster_creator import __version__
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,10 +35,7 @@ logging.basicConfig(
 
 
 def _to_fwf(df, tablefmt="plain"):
-    content = [
-        [tup[0]] + tup[1]
-        for tup in zip(df.index.tolist(), df.values.tolist(), strict=False)
-    ]
+    content = [[tup[0]] + tup[1] for tup in zip(df.index.tolist(), df.values.tolist())]
     content = tabulate(content, [""] + list(df.columns), tablefmt=tablefmt)
     return content
 
@@ -314,7 +310,7 @@ def _size_to_inches(size_units: str) -> float:
         )
 
 
-def _split_city_country(city_country_str: str | None) -> tuple[str | None, str | None]:
+def _split_city_country(city_country_str: str | None) -> Tuple[str | None, str | None]:
     if city_country_str is None:
         return (None, None)
     city_country = [el.strip() for el in city_country_str.split(",", 2)]
@@ -327,19 +323,21 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
     city_name, country_name = _split_city_country(args.city)
     shp_path: str | Path | None = args.shp_path
     geojson_path: str | Path | None = args.geojson_path
-    coordinates_file: str | Path | None = getattr(args, 'coordinates_file', None)
+    coordinates_file: str | Path | None = getattr(args, "coordinates_file", None)
     colors: Sequence[str] = args.colors
     output_prefix: str | None = args.output_prefix
     output_dir: Path = paths.output_dir
     width_in = _size_to_inches(args.width)
     # argparse converts --country-code to country_code in namespace
-    country_code: str | None = getattr(args, 'country_code', None)
+    country_code: str | None = getattr(args, "country_code", None)
     if country_code:
         country_code = str(country_code).strip()
     else:
         country_code = None
-    interactive: bool = getattr(args, 'interactive', False)
+    interactive: bool = getattr(args, "interactive", False)
 
+    # Handle coordinates file - create polygon from points
+    polygon_from_coords = None
     if coordinates_file is not None:
         if geojson_path is not None:
             raise ValueError(
@@ -353,8 +351,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             # Optionally save to file if output_prefix is provided (for debugging/inspection)
             if output_prefix:
                 geojson_path = create_geojson_from_points(
-                    coordinates,
-                    name=output_prefix
+                    coordinates, name=output_prefix
                 )
             else:
                 # Use polygon object directly
@@ -371,7 +368,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 "Either CITY, --geojson-path, or --coordinates-file must be provided."
             )
         geojson_path = get_geojson_path_from_geoboundaries(
-            city=city_name, 
+            city=city_name,
             country=country_name,
             country_code=country_code,
             interactive=interactive,
@@ -392,9 +389,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 calculate_point=True,
             )
         except (ValueError, NotImplementedError):
-            shp_path = download_shp_interactive(
-                city=city_name, country=country_name
-            )
+            shp_path = download_shp_interactive(city=city_name, country=country_name)
 
     if output_prefix is None:
         output_prefix = city_name or "polygon_poster"
@@ -403,10 +398,11 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
     for cscheme_name in colors:
         fname = f"{output_prefix}_{cscheme_name}.png"
         fpath = paths.output_dir / fname
+        args.output_prefix
         try:
             create_poster(
                 shp_dir=Path(shp_path),
-                geojson_path=geojson_path,
+                geojson_path=Path(geojson_path),
                 color=get_colorscheme(cscheme_name),
                 width=width_in,
                 dpi=args.dpi,
@@ -430,7 +426,7 @@ _AVAILABLE_SERVICES = {
 }
 
 
-def get_parser() -> tuple[ArgumentParser, Mapping[str, Callable]]:
+def get_parser() -> Tuple[ArgumentParser, Mapping[str, Callable]]:
     parser = ArgumentParser(prog="mapoc", description="Map Poster Creator")
     parser.add_argument(
         "-v", "--version", action="version", version="%(prog)s " + str(__version__)

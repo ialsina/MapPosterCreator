@@ -1,13 +1,13 @@
-import json
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
-
-import geopandas as gpd
 from ete3 import Tree
-from map_poster_creator.config import paths
+import geopandas as gpd
+import json
 from pandas import read_csv
 from shapely.geometry import Point, Polygon
+from typing import Iterable, Sequence, Mapping
 from tqdm import tqdm
+
+from map_poster_creator.config import paths
 
 
 def _parse_polygons(data: str) -> Sequence[Polygon]:

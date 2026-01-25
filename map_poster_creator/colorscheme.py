@@ -1,13 +1,13 @@
+from dataclasses import dataclass, asdict, astuple
+from functools import lru_cache
 import json
 import logging
-from collections.abc import Mapping
-from dataclasses import asdict, astuple, dataclass
-from functools import cache
+from typing import Mapping
 
-import matplotlib.pyplot as plt
 from colour import Color
 from matplotlib.colors import get_named_colors_mapping
 from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
 
 from map_poster_creator.config import paths
 
@@ -68,8 +68,8 @@ class ColorScheme:
             if arg.startswith("#"):
                 return Color(arg)
             return Color(_MATPLOTLIB_COLORS[arg])
-        if isinstance(arg, list | tuple):
-            if not all(isinstance(element, int | float) for element in arg):
+        if isinstance(arg, (list, tuple)):
+            if not all(isinstance(element, (int, float)) for element in arg):
                 raise _type_error
             if not len(arg) == 3:
                 raise _type_error
@@ -155,21 +155,21 @@ def _ensure_colorscheme_config_file() -> None:
     _save_colorschemes(schemes=_DEFAULT_SCHEMES)
 
 
-@cache
+@lru_cache(maxsize=None)
 def get_colorschemes() -> dict[str, ColorScheme]:
     colorschemes = {}
     for file in _COLORSHCHEME_LIBRARY_FILES:
-        with open(file, encoding="utf-8") as cf:
+        with open(file, "r", encoding="utf-8") as cf:
             colorschemes.update(json.load(cf, object_hook=object_hook))
     return colorschemes
 
 
-@cache
+@lru_cache(maxsize=None)
 def get_available_colorschemes():
     return list(get_colorschemes().keys())
 
 
-@cache
+@lru_cache(maxsize=None)
 def get_colorscheme(name):
     return get_colorschemes()[name]
 

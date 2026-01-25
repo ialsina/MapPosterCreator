@@ -1,8 +1,9 @@
 import requests
-import wget
-from map_poster_creator.config import paths
-from pandas import read_csv
 from requests.exceptions import RequestException
+from pandas import read_csv
+import wget
+
+from map_poster_creator.config import paths
 
 API_URL = "https://api.github.com/repos/datasets/world-cities/commits?path=data/world-cities.csv"
 DATA_URL = "https://raw.githubusercontent.com/datasets/world-cities/master/data/world-cities.csv"
@@ -11,7 +12,7 @@ DATA_URL = "https://raw.githubusercontent.com/datasets/world-cities/master/data/
 def get_github_commit_hash():
     if not paths.cities_gh_datasets.exists():
         return ""
-    with open(paths.cities_gh_datasets_hash, encoding="utf-8") as hf:
+    with open(paths.cities_gh_datasets_hash, "r", encoding="utf-8") as hf:
         return hf.read()
 
 
@@ -41,6 +42,6 @@ if __name__ == "__main__":
         try:
             cities_df = read_cities_df()
         except FileNotFoundError:
-            raise OSError(
+            raise IOError(
                 "Cities info does not exist, couldn't fetch it due to an error"
             ) from exc

@@ -52,19 +52,18 @@ one, the whole suffix (including the hyphen) is omitted. The tilde ("~") is so t
 the names of the combinations sort last in an alphabetical list.
 """
 
-import json
-from collections import UserList, defaultdict
-from collections.abc import Callable, Sequence
-from dataclasses import asdict, dataclass
-from functools import cache, partial
+from collections import defaultdict, UserList
+from dataclasses import dataclass, asdict
+from functools import partial, lru_cache
 from itertools import permutations
-from typing import Any
-
-from map_poster_creator.colorscheme import Color, ColorScheme, JSONEncoder
-from map_poster_creator.config import paths
+import json
 from requests import Session
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
+from typing import Sequence, Any, Callable, List
+
+from map_poster_creator.config import paths
+from map_poster_creator.colorscheme import Color, ColorScheme, JSONEncoder
 
 DATA_URL = (
     "https://raw.githubusercontent.com/mattdesl/"
@@ -128,10 +127,10 @@ class AlgoFactory:
 
     @staticmethod
     def _wrapper(keys, funs, verbose):
-        def algorithm(lst: list):
+        def algorithm(lst: List):
             lst = lst.copy()
             filtered = {}
-            for key, fun in zip(keys, funs, strict=False):
+            for key, fun in zip(keys, funs):
                 if verbose:
                     print(f"\t\tApplying {fun.__name__} -> {key}")
                 element = fun(lst)
@@ -144,7 +143,7 @@ class AlgoFactory:
     def _generate_permutations(self):
         collection = self._collection
         for permutation in permutations(collection.items()):
-            keys, funs = list(zip(*permutation, strict=False))
+            keys, funs = list(zip(*permutation))
             yield self._wrapper(keys, funs, self.verbose)
 
     def __iter__(self):
@@ -228,7 +227,7 @@ class DoccCombination(UserList):
         return colorschemes
 
 
-@cache
+@lru_cache(maxsize=None)
 def get_docc_combinations():
     with (
         Session() as session,

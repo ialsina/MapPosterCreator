@@ -4,7 +4,7 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 from geopandas import GeoDataFrame
 from pandas import Series
@@ -50,9 +50,7 @@ def is_point_in_polygon(point: Point, polygon: Polygon) -> bool:
     """Check if a point is inside a polygon."""
     polygon_gdf = GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[polygon])
     point_gdf = GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[point])
-    return bool(polygon_gdf.contains(
-        point_gdf.loc[0, 'geometry']
-    )[0])
+    return bool(polygon_gdf.contains(point_gdf.loc[0, "geometry"])[0])
 
 
 def _get_city_point_from_series(city_series: Series) -> Point:
@@ -66,7 +64,7 @@ def _get_city_polygon_from_geoboundaries(city_series: Series) -> Polygon | Multi
     """Get the administrative boundary polygon for a city from geoboundaries."""
     pt = _get_city_point_from_series(city_series)
     gdf = get_geoboundaries_gdf()
-    
+
     # Use spatial index to get possible matches
     possible_matches_index = list(gdf.sindex.intersection(pt.bounds))
     if not possible_matches_index:
@@ -76,38 +74,41 @@ def _get_city_polygon_from_geoboundaries(city_series: Series) -> Polygon | Multi
             f'No geoboundaries found near city "{city_name}" with country code "{country_code}".'
         )
     possible_matches = gdf.iloc[possible_matches_index]
-    
+
     # Filter precisely
     city_poly = possible_matches[possible_matches.contains(pt)]
-    
+
     if city_poly.empty:
         city_name = city_series.get("name", "unknown")
         country_code = city_series.get("country code", "unknown")
         raise ValueError(
             f'No polygon found containing city "{city_name}" with country code "{country_code}".'
         )
-    
+
     # Return the first matching polygon's geometry (could be Polygon or MultiPolygon)
     return city_poly.iloc[0].geometry
 
 
 def _polygon_to_geojson_file(geometry: Polygon | MultiPolygon, filepath: Path) -> None:
     """Save a Polygon or MultiPolygon to a GeoJSON file."""
+
     def convert_coord(coord):
         """Convert a coordinate to [lon, lat] format."""
         try:
             # Try to convert to tuple/list first if it's a numpy array or similar
-            if hasattr(coord, 'tolist'):
+            if hasattr(coord, "tolist"):
                 coord = coord.tolist()
             # Handle tuple, list, or any sequence
-            if hasattr(coord, '__getitem__') and hasattr(coord, '__len__'):
+            if hasattr(coord, "__getitem__") and hasattr(coord, "__len__"):
                 if len(coord) >= 2:
                     return [float(coord[0]), float(coord[1])]
             # If it's already a float or single value, that's an error
-            raise ValueError(f"Unexpected coordinate format: {coord} (type: {type(coord)})")
+            raise ValueError(
+                f"Unexpected coordinate format: {coord} (type: {type(coord)})"
+            )
         except (TypeError, IndexError, ValueError) as e:
             raise ValueError(f"Error converting coordinate {coord}: {e}") from e
-    
+
     if isinstance(geometry, MultiPolygon):
         # MultiPolygon: convert each polygon's exterior coordinates
         coordinates = []
@@ -120,19 +121,16 @@ def _polygon_to_geojson_file(geometry: Polygon | MultiPolygon, filepath: Path) -
         coordinates = [convert_coord(coord) for coord in geometry.exterior.coords]
         coordinates = [coordinates]  # Wrap in array for Polygon format
         geometry_type = "Polygon"
-    
+
     geojson = {
         "type": "FeatureCollection",
         "features": [
             {
                 "type": "Feature",
-                "geometry": {
-                    "type": geometry_type,
-                    "coordinates": coordinates
-                },
-                "properties": {}
+                "geometry": {"type": geometry_type, "coordinates": coordinates},
+                "properties": {},
             }
-        ]
+        ],
     }
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(geojson, f)
@@ -141,24 +139,24 @@ def _polygon_to_geojson_file(geometry: Polygon | MultiPolygon, filepath: Path) -
 def read_coordinates_from_file(file_path: Path | str) -> Sequence[Sequence[float]]:
     """
     Read coordinates from a file.
-    
+
     The file can be in one of these formats:
     1. JSON array: [[lon1, lat1], [lon2, lat2], ...]
     2. CSV: lon,lat (one coordinate per line)
     3. Text: lon lat (one coordinate per line, space-separated)
-    
+
     Args:
         file_path: Path to the file containing coordinates.
-    
+
     Returns:
         List of coordinates as [lon, lat] pairs.
     """
     file_path = Path(file_path)
     if not file_path.exists():
         raise FileNotFoundError(f"Coordinate file not found: {file_path}")
-    
+
     content = file_path.read_text(encoding="utf-8").strip()
-    
+
     # Try JSON first
     try:
         coords = json.loads(content)
@@ -166,16 +164,16 @@ def read_coordinates_from_file(file_path: Path | str) -> Sequence[Sequence[float
             return coords
     except json.JSONDecodeError:
         pass
-    
+
     # Try CSV or space-separated
     coordinates = []
     for line in content.splitlines():
         line = line.strip()
-        if not line or line.startswith('#'):
+        if not line or line.startswith("#"):
             continue
         # Try comma-separated first
-        if ',' in line:
-            parts = [p.strip() for p in line.split(',')]
+        if "," in line:
+            parts = [p.strip() for p in line.split(",")]
         else:
             # Space-separated
             parts = line.split()
@@ -185,29 +183,27 @@ def read_coordinates_from_file(file_path: Path | str) -> Sequence[Sequence[float
                 coordinates.append([lon, lat])
             except ValueError:
                 continue
-    
+
     if not coordinates:
         raise ValueError(
             f"Could not parse coordinates from file {file_path}. "
             "Expected JSON array, CSV (lon,lat), or space-separated (lon lat) format."
         )
-    
+
     return coordinates
 
 
-def polygon_from_coordinates(
-    coordinates: Sequence[Sequence[float]]
-) -> Polygon:
+def polygon_from_coordinates(coordinates: Sequence[Sequence[float]]) -> Polygon:
     """
     Create a Polygon object from a list of points defining a polygon.
-    
+
     Args:
         coordinates: List of coordinates, each as [lon, lat] or (lon, lat).
                      The polygon will be automatically closed if first != last point.
-    
+
     Returns:
         Polygon object.
-    
+
     Example:
         >>> coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
         >>> polygon = polygon_from_coordinates(coords)
@@ -216,7 +212,7 @@ def polygon_from_coordinates(
         raise ValueError(
             f"A polygon requires at least 3 points, but got {len(coordinates)}."
         )
-    
+
     # Convert coordinates to list of [lon, lat] pairs
     coord_list = []
     for coord in coordinates:
@@ -226,11 +222,11 @@ def polygon_from_coordinates(
             raise ValueError(
                 f"Invalid coordinate format: {coord}. Expected [lon, lat] or (lon, lat)."
             )
-    
+
     # Ensure polygon is closed (first point == last point)
     if coord_list[0] != coord_list[-1]:
         coord_list.append(coord_list[0])
-    
+
     # Create and return Polygon from coordinates
     return Polygon(coord_list)
 
@@ -238,28 +234,28 @@ def polygon_from_coordinates(
 def create_geojson_from_points(
     coordinates: Sequence[Sequence[float]],
     output_path: Optional[Path] = None,
-    name: Optional[str] = None
+    name: Optional[str] = None,
 ) -> Path:
     """
     Create a GeoJSON file from a list of points defining a polygon.
-    
+
     Args:
         coordinates: List of coordinates, each as [lon, lat] or (lon, lat).
                      The polygon will be automatically closed if first != last point.
         output_path: Optional path to save the GeoJSON file. If not provided,
                      a temporary file will be created.
         name: Optional name for the file (used if output_path is not provided).
-    
+
     Returns:
         Path to the created GeoJSON file.
-    
+
     Example:
         >>> coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
         >>> geojson_path = create_geojson_from_points(coords, name="custom_polygon")
     """
     # Create polygon from coordinates
     polygon = polygon_from_coordinates(coordinates)
-    
+
     # Determine output path
     if output_path is None:
         path = paths.geojson_path
@@ -273,7 +269,7 @@ def create_geojson_from_points(
     else:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Save as GeoJSON
     _polygon_to_geojson_file(polygon, output_path)
     return output_path
@@ -292,11 +288,13 @@ def get_polygon_from_geojson(geojson_path: str) -> Polygon | MultiPolygon:
 
     first_feature, *_ = features
     if not first_feature.get("type") == "Feature":
-        raise ValueError(f"Invalid feature type {first_feature.get('type')}. Expected 'Feature'")
+        raise ValueError(
+            f"Invalid feature type {first_feature.get('type')}. Expected 'Feature'"
+        )
 
     geometry: dict = first_feature.get("geometry")
-    geometry_type = geometry.get('type')
-    
+    geometry_type = geometry.get("type")
+
     if geometry_type not in ("Polygon", "MultiPolygon"):
         raise ValueError(
             f"Invalid geometry type {geometry_type}. Expected 'Polygon' or 'MultiPolygon'"
@@ -304,7 +302,7 @@ def get_polygon_from_geojson(geojson_path: str) -> Polygon | MultiPolygon:
 
     coordinates: list = geometry.get("coordinates")
     if not coordinates:
-        raise ValueError(f"Coordinates not found. Check GeoJSON")
+        raise ValueError("Coordinates not found. Check GeoJSON")
 
     if geometry_type == "MultiPolygon":
         # MultiPolygon: create from list of polygons
@@ -329,6 +327,7 @@ def get_map_geometry_from_poly(poly: Polygon | MultiPolygon) -> MapGeometry:
     left = min(x1, x2)
     right = max(x1, x2)
     center = [(top + bottom) / 2, (left + right) / 2]
-    geometry = MapGeometry(top=top, bottom=bottom, left=left, right=right, center=center)
+    geometry = MapGeometry(
+        top=top, bottom=bottom, left=left, right=right, center=center
+    )
     return geometry
-
