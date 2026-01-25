@@ -5,6 +5,7 @@ This file contains administrative boundaries for cities and regions.
 Downloaded from the geoBoundaries project.
 """
 
+import sys
 import requests
 from requests.adapters import HTTPAdapter
 from map_poster_creator.config import paths
@@ -24,7 +25,12 @@ def fetch_geoboundaries():
 
     if output_path.exists():
         print(f"File {output_path} already exists.")
-        response = input("Replace? [y/N] > ").lower()
+        # Check for --yes flag for non-interactive mode
+        auto_yes = "--yes" in sys.argv or "-y" in sys.argv
+        if auto_yes:
+            response = "y"
+        else:
+            response = input("Replace? [y/N] > ").lower()
         if response not in {"y", "yes", "true", "1"}:
             print("Skipping geoboundaries download.")
             return

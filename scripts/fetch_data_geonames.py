@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 from zipfile import ZipFile
 
 import wget
@@ -11,6 +12,10 @@ DATA_URL = "https://download.geonames.org/export/dump/cities1000.zip"
 
 def ask_replace(file):
     print(f"File {file} already exists.")
+    # Check for --yes flag for non-interactive mode
+    auto_yes = "--yes" in sys.argv or "-y" in sys.argv
+    if auto_yes:
+        return True
     return input("Replace? [y/N] >").lower() in {"y", "yes", "true", "1"}
 
 

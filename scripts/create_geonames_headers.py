@@ -5,6 +5,7 @@ This file contains the column definitions for GeoNames cities1000.txt format.
 Based on the standard GeoNames format documentation.
 """
 
+import sys
 from map_poster_creator.config import paths
 
 # Standard GeoNames allCountries.txt / cities1000.txt column format
@@ -37,7 +38,12 @@ def create_geonames_headers():
 
     if headers_path.exists():
         print(f"File {headers_path} already exists.")
-        response = input("Replace? [y/N] > ").lower()
+        # Check for --yes flag for non-interactive mode
+        auto_yes = "--yes" in sys.argv or "-y" in sys.argv
+        if auto_yes:
+            response = "y"
+        else:
+            response = input("Replace? [y/N] > ").lower()
         if response not in {"y", "yes", "true", "1"}:
             print("Skipping geonames_headers.txt creation.")
             return

@@ -14,6 +14,49 @@ NC='\033[0m' # No Color
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Parse command line arguments
+SKIP_COLORS=false
+TINY_MODE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --skip-colors)
+            SKIP_COLORS=true
+            shift
+            ;;
+        --tiny)
+            TINY_MODE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--skip-colors] [--tiny]"
+            echo ""
+            echo "Options:"
+            echo "  --skip-colors     Skip downloading color schemes"
+            echo "  --tiny            Minimal setup: only build region tree (coordinates-only mode)"
+            echo "                    This disables city name lookups and API features"
+            echo "  -h, --help        Show this help message"
+            echo ""
+            echo "Note: Set MAPOC_DATA_DIR environment variable to override data directory"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# Check if MAPOC_DATA_DIR is set, otherwise use default
+if [ -n "$MAPOC_DATA_DIR" ]; then
+    echo -e "${YELLOW}Using data directory: $MAPOC_DATA_DIR${NC}"
+    echo ""
+fi
+
+# Add --yes for non-interactive mode
+YES_ARG="--yes"
+
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Map Poster Creator Setup${NC}"
 echo -e "${GREEN}========================================${NC}"
@@ -39,39 +82,53 @@ python3 -c "import map_poster_creator" 2>/dev/null || {
 }
 
 echo ""
+if [ "$TINY_MODE" = true ]; then
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}TINY MODE: Minimal setup${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}Only building region tree for coordinate-based usage.${NC}"
+    echo -e "${YELLOW}City name lookups and API features will be disabled.${NC}"
+    echo ""
+fi
 echo -e "${GREEN}Starting data download process...${NC}"
 echo ""
 
-# Step 1: Create geonames headers file
-echo -e "${YELLOW}[1/6] Creating geonames headers file...${NC}"
-python3 "${SCRIPT_DIR}/create_geonames_headers.py" || {
-    echo -e "${RED}Failed to create geonames headers${NC}"
-    exit 1
-}
-echo -e "${GREEN}✓ Geonames headers created${NC}"
-echo ""
+if [ "$TINY_MODE" = false ]; then
+    # Step 1: Create geonames headers file
+    echo -e "${YELLOW}[1/6] Creating geonames headers file...${NC}"
+    python3 "${SCRIPT_DIR}/create_geonames_headers.py" $YES_ARG || {
+        echo -e "${RED}Failed to create geonames headers${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✓ Geonames headers created${NC}"
+    echo ""
 
-# Step 2: Fetch countries data
-echo -e "${YELLOW}[2/6] Fetching countries data...${NC}"
-python3 "${SCRIPT_DIR}/fetch_countries.py" || {
-    echo -e "${RED}Failed to fetch countries data${NC}"
-    exit 1
-}
-echo -e "${GREEN}✓ Countries data fetched${NC}"
-echo ""
+    # Step 2: Fetch countries data
+    echo -e "${YELLOW}[2/6] Fetching countries data...${NC}"
+    python3 "${SCRIPT_DIR}/fetch_countries.py" || {
+        echo -e "${RED}Failed to fetch countries data${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✓ Countries data fetched${NC}"
+    echo ""
 
-# Step 3: Fetch cities data from GeoNames
-echo -e "${YELLOW}[3/6] Fetching cities data from GeoNames...${NC}"
-echo -e "${YELLOW}This may take a few minutes...${NC}"
-python3 "${SCRIPT_DIR}/fetch_data_geonames.py" || {
-    echo -e "${RED}Failed to fetch GeoNames cities data${NC}"
-    exit 1
-}
-echo -e "${GREEN}✓ Cities data fetched${NC}"
-echo ""
+    # Step 3: Fetch cities data from GeoNames
+    echo -e "${YELLOW}[3/6] Fetching cities data from GeoNames...${NC}"
+    echo -e "${YELLOW}This may take a few minutes...${NC}"
+    python3 "${SCRIPT_DIR}/fetch_data_geonames.py" $YES_ARG || {
+        echo -e "${RED}Failed to fetch GeoNames cities data${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✓ Cities data fetched${NC}"
+    echo ""
+fi
 
-# Step 4: Build region tree from GeoFabrik
-echo -e "${YELLOW}[4/6] Building GeoFabrik region tree...${NC}"
+# Step 4: Build region tree from GeoFabrik (always run)
+if [ "$TINY_MODE" = true ]; then
+    echo -e "${YELLOW}[1/1] Building GeoFabrik region tree...${NC}"
+else
+    echo -e "${YELLOW}[4/6] Building GeoFabrik region tree...${NC}"
+fi
 echo -e "${YELLOW}This will crawl the GeoFabrik website and may take several minutes...${NC}"
 python3 "${SCRIPT_DIR}/build_region_tree.py" || {
     echo -e "${RED}Failed to build region tree${NC}"
@@ -80,36 +137,53 @@ python3 "${SCRIPT_DIR}/build_region_tree.py" || {
 echo -e "${GREEN}✓ Region tree built${NC}"
 echo ""
 
-# Step 5: Fetch geoboundaries data
-echo -e "${YELLOW}[5/6] Fetching geoboundaries data...${NC}"
-echo -e "${YELLOW}This is a large file and may take several minutes...${NC}"
-python3 "${SCRIPT_DIR}/fetch_geoboundaries.py" || {
-    echo -e "${RED}Failed to fetch geoboundaries data${NC}"
-    exit 1
-}
-echo -e "${GREEN}✓ Geoboundaries data fetched${NC}"
-echo ""
-
-# Step 6: Fetch color schemes (optional)
-echo -e "${YELLOW}[6/6] Fetching color schemes (optional)...${NC}"
-read -p "Download additional color schemes from Dictionary of Color Combinations? [y/N] " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
-        echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
+if [ "$TINY_MODE" = false ]; then
+    # Step 5: Fetch geoboundaries data
+    echo -e "${YELLOW}[5/6] Fetching geoboundaries data...${NC}"
+    echo -e "${YELLOW}This is a large file and may take several minutes...${NC}"
+    python3 "${SCRIPT_DIR}/fetch_geoboundaries.py" $YES_ARG || {
+        echo -e "${RED}Failed to fetch geoboundaries data${NC}"
+        exit 1
     }
-    echo -e "${GREEN}✓ Color schemes fetched${NC}"
-else
-    echo -e "${YELLOW}Skipping color schemes${NC}"
+    echo -e "${GREEN}✓ Geoboundaries data fetched${NC}"
+    echo ""
+
+    # Step 6: Fetch color schemes (optional)
+    if [ "$SKIP_COLORS" = true ]; then
+        echo -e "${YELLOW}[6/6] Skipping color schemes (--skip-colors specified)${NC}"
+        echo ""
+    else
+        echo -e "${YELLOW}[6/6] Fetching color schemes (optional)...${NC}"
+        read -p "Download additional color schemes from Dictionary of Color Combinations? [y/N] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
+                echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
+            }
+            echo -e "${GREEN}✓ Color schemes fetched${NC}"
+        else
+            echo -e "${YELLOW}Skipping color schemes${NC}"
+        fi
+        echo ""
+    fi
 fi
-echo ""
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Setup completed successfully!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo "Data files are stored in: ~/.mapoc/"
+if [ -n "$MAPOC_DATA_DIR" ]; then
+    echo "Data files are stored in: $MAPOC_DATA_DIR"
+else
+    echo "Data files are stored in: ~/.mapoc/"
+fi
 echo ""
+if [ "$TINY_MODE" = true ]; then
+    echo -e "${YELLOW}Note: Running in TINY mode.${NC}"
+    echo -e "${YELLOW}City name lookups and API features are disabled.${NC}"
+    echo -e "${YELLOW}Only coordinate-based usage is available.${NC}"
+    echo ""
+fi
 echo "You can now use Map Poster Creator:"
 echo "  mapoc poster create --shp_path PATH --geojson PATH --colors white black coral"
 echo ""
