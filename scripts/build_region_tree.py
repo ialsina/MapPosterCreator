@@ -84,14 +84,19 @@ def fetch_polygons(
     urls: UrlsType,
 ) -> None:
     print("Fetching polygons:")
+    max_name_length = 30
     tree_iter = tree.traverse()
     if tree_iter is None:
         return
     with tqdm(total=len(tree), leave=True) as pbar:
         for node in tree_iter:
             node_name = unidecode(node.name)
-            pbar.set_description(node_name)
-            print(f"{node_name:<90s}", end="\r")
+            description = (
+                node_name[: max_name_length - 3] + "..."
+                if len(node_name) > max_name_length
+                else node_name.ljust(max_name_length)
+            )
+            pbar.set_description(description)
             try:
                 poly_url = next(filter(lambda x: x.endswith(".poly"), urls[node_name]))
                 response = session.get(poly_url)
