@@ -19,25 +19,26 @@ from map_poster_creator.data import (
 )
 from map_poster_creator.data.models import _country_df
 
+
 def get_country_df():
     """Get country DataFrame from the model."""
     return _country_df.data
 
+
 def interactive_resolve_city(df: DataFrame) -> Series:
     def row_txt(row):
-        country_name = countries[
-            countries["Code"] == row["country code"]
-        ].iloc[0]["Name"]
+        country_name = countries[countries["Code"] == row["country code"]].iloc[0][
+            "Name"
+        ]
         admin_lst = [row[f"admin{i} code"] for i in range(4, 0, -1)]
         admin_lst.append(country_name)
         admin_txt = ", ".join(el for el in admin_lst if el)
         return f"{row['name']}, {admin_txt}"
+
     countries = get_country_df()
     choices = {i: row for i, (_, row) in enumerate(df.iterrows(), start=1)}
     print("Choose city:")
-    print("\t" + "\n\t".join(
-        f"{i}. {row_txt(row)}" for i, row in choices.items()
-    ))
+    print("\t" + "\n\t".join(f"{i}. {row_txt(row)}" for i, row in choices.items()))
     while True:
         user_input = input("\tSelect choice [1] >")
         if user_input == "":
@@ -50,7 +51,9 @@ def interactive_resolve_city(df: DataFrame) -> Series:
             pass
 
 
-def browser_get_geojson_path_interactive(city: str, country: Optional[str] = None) -> Path:
+def browser_get_geojson_path_interactive(
+    city: str, country: Optional[str] = None
+) -> Path:
     path = paths.geojson_path
     path.mkdir(parents=True, exist_ok=True)
     filepath = path / f"{city}.geojson"
@@ -61,13 +64,13 @@ def browser_get_geojson_path_interactive(city: str, country: Optional[str] = Non
     if city_series is None:
         raise ValueError(
             f'City "{city}" '
-            + (f'and country "{country}" ' if country is not None else '')
+            + (f'and country "{country}" ' if country is not None else "")
             + "did not give any results."
         )
     webbrowser.open_new_tab(
         GEOJSON_URL.format(
-            latitude=city_series["latitude"],
-            longitude=city_series["longitude"])
+            latitude=city_series["latitude"], longitude=city_series["longitude"]
+        )
     )
     with open(filepath, "w+b") as tf:
         filepath = tf.name
@@ -100,14 +103,11 @@ def download_shp_interactive(city: str, country: Optional[str] = None) -> Path:
     return extract_dir
 
 
-
 def interactive_region_choose(sorted_distances, num_choices=5) -> Tree:
     top_regions = list(zip(*sorted_distances))[0][:num_choices]
     choices = {i: region for i, region in enumerate(top_regions, start=1)}
     print("Choose region:")
-    print("\t" + "\n\t".join(
-        f"{i}. {node.name}" for i, node in choices.items())
-    )
+    print("\t" + "\n\t".join(f"{i}. {node.name}" for i, node in choices.items()))
     while True:
         user_input = input("\tSelect choice [1] >")
         if user_input == "":

@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 import tempfile
 import yaml
@@ -29,6 +29,7 @@ with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
 
 config = Config.from_dict(_config_dct)
 
+
 @dataclass(frozen=True)
 class paths:
     data_dir = config.data_dir
@@ -45,7 +46,8 @@ class paths:
     geofabrik_tree_nw = data_dir / "geofabrik_tree.nw"
     geofabrik_tree_txt = data_dir / "geofabrik_tree.txt"
     geofabrik_urls = data_dir / "geofabrik_urls.json"
-    geoboundaries_path  = data_dir / "geoBoundariesCGAZ_ADM2.geojson"
+    geoboundaries_path = data_dir / "geoBoundariesCGAZ_ADM2.geojson"
     shp_path = (data_dir if config.keep_shp_files else _TEMP_DIR / "mapoc") / "shp"
-    geojson_path = (data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc") /"geojson"
-
+    geojson_path = (
+        data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc"
+    ) / "geojson"

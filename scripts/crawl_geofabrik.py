@@ -8,7 +8,15 @@ import time
 URL_BASE = "http://download.geofabrik.de"
 
 
-def crawl(url, follow_exts, extract_exts, max_depth=2, visited=None, results=None, domain_limit=None):
+def crawl(
+    url,
+    follow_exts,
+    extract_exts,
+    max_depth=2,
+    visited=None,
+    results=None,
+    domain_limit=None,
+):
     """
     Recursively crawls hyperlinks from a URL.
 
@@ -61,7 +69,9 @@ def crawl(url, follow_exts, extract_exts, max_depth=2, visited=None, results=Non
         follow = any(path_lower.endswith(ext) for ext in follow_exts)
 
         # Decide whether to extract
-        extract = not extract_exts or any(path_lower.endswith(ext) for ext in extract_exts)
+        extract = not extract_exts or any(
+            path_lower.endswith(ext) for ext in extract_exts
+        )
 
         if extract:
             print(f"URL: {absolute_url}")
@@ -69,27 +79,51 @@ def crawl(url, follow_exts, extract_exts, max_depth=2, visited=None, results=Non
 
         # Recursively follow links
         if follow and absolute_url not in visited:
-            crawl(absolute_url, follow_exts, extract_exts, max_depth - 1, visited, results, domain_limit)
+            crawl(
+                absolute_url,
+                follow_exts,
+                extract_exts,
+                max_depth - 1,
+                visited,
+                results,
+                domain_limit,
+            )
             time.sleep(0.3)  # polite delay
+
 
 def main():
     parser = argparse.ArgumentParser(description="Recursive hyperlink crawler")
-    parser.add_argument("--follow", nargs="+", default=[".html", ".htm"],
-                        help="File extensions to follow recursively (default: .html .htm)")
-    parser.add_argument("--extract", nargs="+", default=None,
-                        help="File extensions to include in final results (default: all)")
+    parser.add_argument(
+        "--follow",
+        nargs="+",
+        default=[".html", ".htm"],
+        help="File extensions to follow recursively (default: .html .htm)",
+    )
+    parser.add_argument(
+        "--extract",
+        nargs="+",
+        default=None,
+        help="File extensions to include in final results (default: all)",
+    )
 
     args = parser.parse_args()
 
     domain_limit = urlparse(URL_BASE).netloc
     results = []
 
-    crawl(URL_BASE, args.follow, args.extract, max_depth=3, domain_limit=domain_limit, results=results)
+    crawl(
+        URL_BASE,
+        args.follow,
+        args.extract,
+        max_depth=3,
+        domain_limit=domain_limit,
+        results=results,
+    )
 
     print("\nFinal extracted links:")
     for link in sorted(set(results)):
         print(link)
 
+
 if __name__ == "__main__":
     main()
-

@@ -10,6 +10,7 @@ from map_poster_creator.colorscheme import ColorScheme
 from map_poster_creator.geometry import MapGeometry
 from map_poster_creator.logs import log_processing
 
+
 def road_width(speed: int) -> float:
     if speed in range(0, 30):
         return 0.05
@@ -21,20 +22,22 @@ def road_width(speed: int) -> float:
         return 0.3
     return 0.4
 
+
 @log_processing
 def plot_dataframe(ax: Axes, gdf: GeoDataFrame, **kwargs) -> None:
     gdf.plot(ax=ax, **kwargs)
 
+
 def plot_and_save(
-        roads: GeoDataFrame,
-        water: GeoDataFrame,
-        greens: GeoDataFrame,
-        cscheme: ColorScheme,
-        geometry: MapGeometry,
-        path: Path,
-        dpi: Optional[int] = 300,
-        width: Optional[int] = None,
-        figsize: Optional[Tuple[float, float]] = (8, 8),
+    roads: GeoDataFrame,
+    water: GeoDataFrame,
+    greens: GeoDataFrame,
+    cscheme: ColorScheme,
+    geometry: MapGeometry,
+    path: Path,
+    dpi: Optional[int] = 300,
+    width: Optional[int] = None,
+    figsize: Optional[Tuple[float, float]] = (8, 8),
 ) -> None:
     plt.clf()
     if width is not None:
@@ -52,11 +55,8 @@ def plot_and_save(
     )
     # Set aspect ration according depending on latitude
     # (not sure why this is needed)
-    ax.set_aspect(
-        1 / math.cos(math.pi / 180 * geometry.center[0])
-    )
+    ax.set_aspect(1 / math.cos(math.pi / 180 * geometry.center[0]))
     ax.set_ylim((geometry.bottom, geometry.top))
     ax.set_xlim((geometry.left, geometry.right))
     ax.set_axis_off()
-    fig.savefig(path, bbox_inches='tight', dpi=dpi)
-
+    fig.savefig(path, bbox_inches="tight", dpi=dpi)

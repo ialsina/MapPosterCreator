@@ -17,10 +17,12 @@ URL = "https://download.geofabrik.de/"
 UrlsType = Mapping[str, Sequence[str]]
 print = tqdm.write
 
+
 def find_tables(soup):
     subregions = soup.find_all("table", id="subregions", recursive=True)
     special_subregions = soup.find_all("table", id="specialsubregions", recursive=True)
     return subregions + special_subregions
+
 
 def get_pages_from_table(table):
     pages = {}
@@ -32,20 +34,14 @@ def get_pages_from_table(table):
             pages[a_tag.text] = a_tag.attrs.get("href")
     return pages
 
+
 def _get_description(url: str, region: str) -> str:
     max_url = 60
     max_region = 30
-    url = (
-        url
-        if len(url) <= max_url
-        else url[:(max_url - 3)] + "..."
-    )
-    region = (
-        region
-        if len(region) <= max_region
-        else region[:(max_region - 3)] + "..."
-    )
+    url = url if len(url) <= max_url else url[: (max_url - 3)] + "..."
+    region = region if len(region) <= max_region else region[: (max_region - 3)] + "..."
     return f"{region:>{max_region}s}: {url:<{max_url}s}"
+
 
 def find_tree(session) -> Tuple[TreeNode, UrlsType]:
     def navigate_node(url, region="", depth=1):
@@ -68,12 +64,12 @@ def find_tree(session) -> Tuple[TreeNode, UrlsType]:
                     child_node = navigate_node(
                         url=urljoin(url, href),
                         region=unidecode(name),
-                        depth=depth+1,
+                        depth=depth + 1,
                     )
                     if child_node:
                         node.add_child(child_node)
                 else:
-                  region_urls[region].append(urljoin(url, href))
+                    region_urls[region].append(urljoin(url, href))
         return node
 
     print(f"Building tree. Navigating site {URL}...\n")
@@ -81,11 +77,12 @@ def find_tree(session) -> Tuple[TreeNode, UrlsType]:
     region_tree = navigate_node(URL)
     return region_tree, dict(region_urls)
 
+
 def fetch_polygons(
-        session: Session,
-        tree: TreeNode,
-        urls: UrlsType,
-    ) -> None:
+    session: Session,
+    tree: TreeNode,
+    urls: UrlsType,
+) -> None:
     print("Fetching polygons:")
     tree_iter = tree.traverse()
     if tree_iter is None:
@@ -96,9 +93,7 @@ def fetch_polygons(
             pbar.set_description(node_name)
             print(f"{node_name:<90s}", end="\r")
             try:
-                poly_url = next(
-                    filter(lambda x: x.endswith(".poly"), urls[node_name])
-                )
+                poly_url = next(filter(lambda x: x.endswith(".poly"), urls[node_name]))
                 response = session.get(poly_url)
                 response.raise_for_status()
                 response.encoding = response.apparent_encoding
@@ -106,6 +101,7 @@ def fetch_polygons(
             except (StopIteration, KeyError, RequestException):
                 print(f"Couldn't fetch polygon for {node_name}")
             pbar.update()
+
 
 def _tree_to_json(node):
     result = {"name": node.name}
@@ -115,8 +111,8 @@ def _tree_to_json(node):
         result["children"] = [_tree_to_json(child) for child in node.get_children()]
     return result
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     with Session() as session:
         session.mount("http://", HTTPAdapter(max_retries=3))
         session.mount("https://", HTTPAdapter(max_retries=3))
@@ -124,11 +120,12 @@ if __name__ == "__main__":
         fetch_polygons(session, tree, urls)
 
     if tree is not None:
-        tree.write(format=1, features=["url", "polygon"], outfile=paths.geofabrik_tree_nw)
+        tree.write(
+            format=1, features=["url", "polygon"], outfile=paths.geofabrik_tree_nw
+        )
 
         with open(paths.geofabrik_tree_txt, "w", encoding="utf-8") as wf:
             pprint(_tree_to_json(tree), stream=wf)
 
     with open(paths.geofabrik_urls, "w", encoding="utf-8") as wf:
         json.dump(urls, wf)
-

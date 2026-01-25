@@ -19,10 +19,10 @@ setuptools.setup(
     url="https://github.com/k4m454k/MapPosterCreator",
     packages=setuptools.find_packages(),
     entry_points={
-        'console_scripts': [
-            'mapoc = map_poster_creator.entrypoints:map_poster',
+        "console_scripts": [
+            "mapoc = map_poster_creator.entrypoints:map_poster",
         ],
     },
     install_requires=requirements,
-    python_requires='>=3.7',
+    python_requires=">=3.7",
 )

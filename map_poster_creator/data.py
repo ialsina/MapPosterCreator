@@ -28,16 +28,6 @@ from map_poster_creator.data.core import (
     GEOFABRIK_HREF_ATTRIBUTE_END,
     is_valid_download_url,
     is_valid_a_tag,
-    _search_fun,
-    _open_text_editor,
-    _remove_hash_trailing_lines,
-    _ask_reuse,
-    _exit_if_empty_file,
-    _find_shp_url,
-    _get_extract_dir,
-    _download_extract_shp,
-    _extract_shp_url,
-    _calculate_point_choose,
 )
 
 # Re-export geometry functions
@@ -49,10 +39,6 @@ from map_poster_creator.geometry import (
     create_geojson_from_points,
     get_polygon_from_geojson,
     get_map_geometry_from_poly,
-    _parse_polygons,
-    _get_city_point_from_series,
-    _get_city_polygon_from_geoboundaries,
-    _polygon_to_geojson_file,
 )
 
 __all__ = [

@@ -1,6 +1,5 @@
 from argparse import ArgumentParser, Namespace
 import logging
-from matplotlib import interactive
 from pandas import DataFrame
 from pathlib import Path
 from tabulate import tabulate
@@ -19,7 +18,6 @@ from map_poster_creator.colorscheme import (
     add_colorscheme,
 )
 from map_poster_creator.data import (
-    browser_get_geojson_path_interactive,
     download_shp_interactive,
     find_download_shp,
     get_geojson_path_from_geoboundaries,
@@ -31,27 +29,22 @@ from map_poster_creator import __version__
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+
 def _to_fwf(df, tablefmt="plain"):
-    content = [
-        [tup[0]] + tup[1]
-        for tup in zip(df.index.tolist(), df.values.tolist())
-    ]
-    content = tabulate(
-        content,
-        [""] + list(df.columns),
-        tablefmt=tablefmt
-    )
+    content = [[tup[0]] + tup[1] for tup in zip(df.index.tolist(), df.values.tolist())]
+    content = tabulate(content, [""] + list(df.columns), tablefmt=tablefmt)
     return content
+
 
 def _add_poster_subparsers(subparser_group) -> None:
     poster_parser = subparser_group.add_parser(
-        'poster',
-        description='Create Map Poster',
-        help='Poster creation',
+        "poster",
+        description="Create Map Poster",
+        help="Poster creation",
     )
     poster_parser.add_argument(
         action="store",
@@ -62,7 +55,7 @@ def _add_poster_subparsers(subparser_group) -> None:
         metavar="CITY",
         dest="city",
         nargs="?",
-        default=None
+        default=None,
     )
     poster_parser.add_argument(
         "-c",
@@ -77,7 +70,8 @@ def _add_poster_subparsers(subparser_group) -> None:
         metavar="COUNTRY_CODE",
     )
     poster_parser.add_argument(
-        "-i", "--interactive",
+        "-i",
+        "--interactive",
         action="store_true",
         required=False,
         help=(
@@ -86,7 +80,8 @@ def _add_poster_subparsers(subparser_group) -> None:
         ),
     )
     poster_parser.add_argument(
-        "-w", "--width",
+        "-w",
+        "--width",
         default=config.default_width,
         required=False,
         action="store",
@@ -98,13 +93,12 @@ def _add_poster_subparsers(subparser_group) -> None:
         metavar="WIDTH",
     )
     poster_parser.add_argument(
-        "-d", "--dpi",
+        "-d",
+        "--dpi",
         default=config.default_dpi,
         required=False,
         action="store",
-        help=(
-            "Dots per inch (dpi) of the figure."
-        ),
+        help=("Dots per inch (dpi) of the figure."),
         type=int,
         metavar="DPI",
     )
@@ -117,129 +111,134 @@ def _add_poster_subparsers(subparser_group) -> None:
         metavar="SHP_PATH",
     )
     poster_parser.add_argument(
-        '--geojson-path',
+        "--geojson-path",
         default=None,
         action="store",
         required=False,
         help=(
-            'Path to geojson file with boundary polygon. '
+            "Path to geojson file with boundary polygon. "
             'Type "mapoc browse geojson" to create and download.'
         ),
         metavar="GEOJSON_PATH",
     )
     poster_parser.add_argument(
-        '--coordinates-file',
+        "--coordinates-file",
         default=None,
         action="store",
         required=False,
         help=(
-            'Path to file containing polygon coordinates. '
-            'Supports JSON array format ([[lon,lat],...]), '
-            'CSV format (lon,lat per line), or space-separated (lon lat per line). '
-            'Coordinates should be in [longitude, latitude] format.'
+            "Path to file containing polygon coordinates. "
+            "Supports JSON array format ([[lon,lat],...]), "
+            "CSV format (lon,lat per line), or space-separated (lon lat per line). "
+            "Coordinates should be in [longitude, latitude] format."
         ),
         metavar="COORDINATES_FILE",
     )
     poster_parser.add_argument(
-        '--colors',
+        "--colors",
         help=(
-            f'Provide one or several color schemes.'
-            f'Default: "white". '
-            f'Type "mapoc color list" to see a list of available colors.'
+            "Provide one or several color schemes."
+            'Default: "white". '
+            'Type "mapoc color list" to see a list of available colors.'
         ),
         default=["white"],
         nargs="+",
     )
     poster_parser.add_argument(
-        '--output-prefix',
-        help=(
-            "Output filename prefix."
-        ),
+        "--output-prefix",
+        help=("Output filename prefix."),
         required=False,
         type=str,
-        default=None
+        default=None,
     )
+
 
 def _add_browse_subparsers(subparser_group) -> None:
     browse_parser = subparser_group.add_parser(
-        'browse',
-        description='browse services',
-        help='browse services',
+        "browse",
+        description="browse services",
+        help="browse services",
     )
     browse_parser_commands = browse_parser.add_subparsers(
-        title='browse management commands',
-        description='browse',
-        help='Additional help for available commands',
-        dest='browse_commands',
+        title="browse management commands",
+        description="browse",
+        help="Additional help for available commands",
+        dest="browse_commands",
     )
     browse_parser_commands.add_parser(
-        'shp',
-        description='Shp download',
+        "shp",
+        description="Shp download",
     )
     browse_parser_commands.add_parser(
-        'geojson',
-        description='Create geoJSON',
+        "geojson",
+        description="Create geoJSON",
     )
+
 
 def _add_color_subparsers(main_parser) -> None:
     def command_add() -> None:
         color_add_parser = color_parser_commands.add_parser(
-            'add',
-            description="List available colors"
+            "add", description="List available colors"
         )
         color_add_parser.add_argument(
-            'name',
+            "name",
             help='Name of color scheme. eq. "blue"',
             metavar="NAME",
         )
         color_add_parser.add_argument(
-            '-f', '--facecolor',
-            help='Face color, as a hex color or Matplotlib named color.',
+            "-f",
+            "--facecolor",
+            help="Face color, as a hex color or Matplotlib named color.",
             required=True,
             metavar="FACECOLOR",
         )
         color_add_parser.add_argument(
-            '-w', '--water',
-            help='Water color, as a hex color or Matplotlib named color.',
+            "-w",
+            "--water",
+            help="Water color, as a hex color or Matplotlib named color.",
             required=True,
             metavar="WATER",
         )
         color_add_parser.add_argument(
-            '-g', '--greens',
-            help='Greens color, as a hex color or Matplotlib named color.',
+            "-g",
+            "--greens",
+            help="Greens color, as a hex color or Matplotlib named color.",
             required=True,
             metavar="GREENS",
         )
         color_add_parser.add_argument(
-            '-r', '--roads',
-            help='Roads color, as a hex color or Matplotlib named color.',
+            "-r",
+            "--roads",
+            help="Roads color, as a hex color or Matplotlib named color.",
             required=True,
             metavar="ROADS",
         )
+
     def command_show() -> None:
         parser = color_parser_commands.add_parser(
-            "show",
-            description="Show palette of available color"
+            "show", description="Show palette of available color"
         )
         parser.add_argument(
             "name",
             help="Name of the color scheme",
         )
+
     def command_list() -> None:
         color_parser_commands.add_parser(
-            'list',
+            "list",
             description="List available colors",
         )
+
     color_parser = main_parser.add_parser(
-        'color',
-        description='Color services',
-        help='Color services',
+        "color",
+        description="Color services",
+        help="Color services",
     )
     color_parser_commands = color_parser.add_subparsers(
-        title='color management commands',
-        description='Color management',
-        help='Additional help for available commands',
-        dest='color_commands',
+        title="color management commands",
+        description="Color management",
+        help="Additional help for available commands",
+        dest="color_commands",
     )
     command_add()
     command_show()
@@ -247,18 +246,23 @@ def _add_color_subparsers(main_parser) -> None:
 
 
 def _color_service(
-        args: Namespace,
-        print_help: Callable,
-    ) -> None:
+    args: Namespace,
+    print_help: Callable,
+) -> None:
     command = args.color_commands
     if command == "list":
-        print(_to_fwf(
-            DataFrame.from_dict({
-                name: scheme.to_json()
-                for name, scheme in get_colorschemes().items()
-            }, orient="index").sort_index(inplace=False),
-            tablefmt="fancy_grid"
-        ))
+        print(
+            _to_fwf(
+                DataFrame.from_dict(
+                    {
+                        name: scheme.to_json()
+                        for name, scheme in get_colorschemes().items()
+                    },
+                    orient="index",
+                ).sort_index(inplace=False),
+                tablefmt="fancy_grid",
+            )
+        )
     elif command == "add":
         add_colorscheme(
             args.name,
@@ -267,24 +271,23 @@ def _color_service(
                 water=args.water,
                 greens=args.greens,
                 roads=args.roads,
-            )
+            ),
         )
     elif command == "show":
         get_colorscheme(args.name).show()
     else:
         print_help()
 
-def _browse_service(
-        args: Namespace,
-        print_help: Callable
-    ) -> None:
+
+def _browse_service(args: Namespace, print_help: Callable) -> None:
     command = args.browse_commands
-    if command == 'shp':
+    if command == "shp":
         webbrowser.open_new_tab("https://download.geofabrik.de/")
     elif command == "geojson":
         webbrowser.open_new_tab("https://geojson.io/")
     else:
         print_help()
+
 
 def _size_to_inches(size_units: str) -> float:
     if size_units.isnumeric():
@@ -306,6 +309,7 @@ def _size_to_inches(size_units: str) -> float:
             "The supported units are 'cm', 'in', and 'px'."
         )
 
+
 def _split_city_country(city_country_str: str | None) -> Tuple[str | None, str | None]:
     if city_country_str is None:
         return (None, None)
@@ -314,22 +318,23 @@ def _split_city_country(city_country_str: str | None) -> Tuple[str | None, str |
         return (city_country[0], None)
     return (city_country[0], city_country[1])
 
+
 def _poster_service(args: Namespace, print_help: Callable) -> None:
     city_name, country_name = _split_city_country(args.city)
     shp_path: str | Path | None = args.shp_path
     geojson_path: str | Path | None = args.geojson_path
-    coordinates_file: str | Path | None = getattr(args, 'coordinates_file', None)
+    coordinates_file: str | Path | None = getattr(args, "coordinates_file", None)
     colors: Sequence[str] = args.colors
     output_prefix: str | None = args.output_prefix
     output_dir: Path = paths.output_dir
     width_in = _size_to_inches(args.width)
     # argparse converts --country-code to country_code in namespace
-    country_code: str | None = getattr(args, 'country_code', None)
+    country_code: str | None = getattr(args, "country_code", None)
     if country_code:
         country_code = str(country_code).strip()
     else:
         country_code = None
-    interactive: bool = getattr(args, 'interactive', False)
+    interactive: bool = getattr(args, "interactive", False)
 
     # Handle coordinates file - create polygon from points
     polygon_from_coords = None
@@ -346,8 +351,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             # Optionally save to file if output_prefix is provided (for debugging/inspection)
             if output_prefix:
                 geojson_path = create_geojson_from_points(
-                    coordinates,
-                    name=output_prefix
+                    coordinates, name=output_prefix
                 )
             else:
                 # Use polygon object directly
@@ -364,7 +368,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 "Either CITY, --geojson-path, or --coordinates-file must be provided."
             )
         geojson_path = get_geojson_path_from_geoboundaries(
-            city=city_name, 
+            city=city_name,
             country=country_name,
             country_code=country_code,
             interactive=interactive,
@@ -385,9 +389,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 calculate_point=True,
             )
         except (ValueError, NotImplementedError):
-            shp_path = download_shp_interactive(
-                city=city_name, country=country_name
-            )
+            shp_path = download_shp_interactive(city=city_name, country=country_name)
 
     if output_prefix is None:
         output_prefix = city_name or "polygon_poster"
@@ -413,36 +415,35 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 "SHP file. "
             ) from exc
         except KeyError:
-            print(
-                f"Skipping color {cscheme_name} as it is unknown."
-            )
+            print(f"Skipping color {cscheme_name} as it is unknown.")
     return
 
+
 _AVAILABLE_SERVICES = {
-    'poster': _poster_service,
-    'browse': _browse_service,
-    'color': _color_service,
+    "poster": _poster_service,
+    "browse": _browse_service,
+    "color": _color_service,
 }
 
+
 def get_parser() -> Tuple[ArgumentParser, Mapping[str, Callable]]:
-    parser = ArgumentParser(
-        prog='mapoc',
-        description="Map Poster Creator"
+    parser = ArgumentParser(prog="mapoc", description="Map Poster Creator")
+    parser.add_argument(
+        "-v", "--version", action="version", version="%(prog)s " + str(__version__)
     )
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + str(__version__))
     subparsers = parser.add_subparsers(
-        title='Available Map Poster services',
-        description='Services that Map Poster provides.',
-        help='Additional help for available services',
-        dest='map_poster_services',
+        title="Available Map Poster services",
+        description="Services that Map Poster provides.",
+        help="Additional help for available services",
+        dest="map_poster_services",
     )
     _add_poster_subparsers(subparsers)
     _add_browse_subparsers(subparsers)
     _add_color_subparsers(subparsers)
     return parser, {
-        choice: subparser.print_help
-        for choice, subparser in subparsers.choices.items()
+        choice: subparser.print_help for choice, subparser in subparsers.choices.items()
     }
+
 
 def map_poster(argv=None) -> None:
     if argv is None:
@@ -458,6 +459,5 @@ def map_poster(argv=None) -> None:
     _AVAILABLE_SERVICES[service](args, help_dict[service])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     map_poster()
-

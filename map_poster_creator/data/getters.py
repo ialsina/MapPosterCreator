@@ -44,7 +44,9 @@ def get_region_polygons(node: Tree) -> Sequence[Polygon]:
     return _region_polygons_model.get(node)
 
 
-def get_all_region_polygons(only_leaf: bool = False) -> Mapping[Tree, Sequence[Polygon]]:
+def get_all_region_polygons(
+    only_leaf: bool = False,
+) -> Mapping[Tree, Sequence[Polygon]]:
     """Get all region polygons from the model."""
     return _all_region_polygons_model.get(only_leaf)
 
@@ -62,4 +64,3 @@ def get_geoboundaries_gdf() -> GeoDataFrame:
 def get_cities_geonames() -> DataFrame:
     """Get cities GeoNames DataFrame from the model."""
     return _cities_geonames.data
-
