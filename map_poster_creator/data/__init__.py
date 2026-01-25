@@ -1,24 +1,87 @@
 """Data models package."""
 
+# Import getters
+from map_poster_creator.data.getters import (
+    get_city_df,
+    get_country_df,
+    get_regions_tree,
+    get_geofabrik_urls,
+    get_region_polygons,
+    get_all_region_polygons,
+    get_region_centroids,
+    get_geoboundaries_gdf,
+    get_cities_geonames,
+)
 
-# Lazy import from data.py to maintain backward compatibility
-# This allows "from map_poster_creator.data import get_city_df" to work
-def __getattr__(name):
-    """Lazily import attributes from the parent data.py module."""
-    import importlib.util
-    import sys
-    from pathlib import Path
+# Import core functions (including private ones for backward compatibility)
+from map_poster_creator.data.core import (
+    resolve_city,
+    find_download_shp,
+    get_geojson_path_from_geoboundaries,
+    GEOJSON_URL,
+    GEOFABRIK_URL,
+    GEOFABRIK_HREF_ATTRIBUTE_END,
+    is_valid_download_url,
+    is_valid_a_tag,
+    # Private functions exported for backward compatibility
+    _open_text_editor,
+    _remove_hash_trailing_lines,
+    _ask_reuse,
+    _exit_if_empty_file,
+    _find_shp_url,
+    _download_extract_shp,
+)
 
-    # Load data.py as a separate module to avoid circular imports
-    _module_name = "map_poster_creator._data_functions"
-    if _module_name not in sys.modules:
-        _data_py_path = Path(__file__).parent.parent / "data.py"
-        _spec = importlib.util.spec_from_file_location(_module_name, _data_py_path)
-        _data_module = importlib.util.module_from_spec(_spec)
-        sys.modules[_module_name] = _data_module
-        _spec.loader.exec_module(_data_module)
+# Import geometry functions directly (no circular import since geometry.py no longer imports from data)
+from map_poster_creator.geometry import (
+    MapGeometry,
+    is_point_in_polygon,
+    read_coordinates_from_file,
+    polygon_from_coordinates,
+    create_geojson_from_points,
+    get_polygon_from_geojson,
+    get_map_geometry_from_poly,
+)
 
-    _data_module = sys.modules[_module_name]
-    if hasattr(_data_module, name):
-        return getattr(_data_module, name)
-    raise AttributeError(f"module 'map_poster_creator.data' has no attribute '{name}'")
+# Import interactive function (no circular import issue)
+from map_poster_creator.interactive import download_shp_interactive
+
+
+__all__ = [
+    # Getters
+    "get_city_df",
+    "get_country_df",
+    "get_regions_tree",
+    "get_geofabrik_urls",
+    "get_region_polygons",
+    "get_all_region_polygons",
+    "get_region_centroids",
+    "get_geoboundaries_gdf",
+    "get_cities_geonames",
+    # Core functions
+    "resolve_city",
+    "find_download_shp",
+    "get_geojson_path_from_geoboundaries",
+    "GEOJSON_URL",
+    "GEOFABRIK_URL",
+    "GEOFABRIK_HREF_ATTRIBUTE_END",
+    "is_valid_download_url",
+    "is_valid_a_tag",
+    # Private functions (for backward compatibility)
+    "_open_text_editor",
+    "_remove_hash_trailing_lines",
+    "_ask_reuse",
+    "_exit_if_empty_file",
+    "_find_shp_url",
+    "_download_extract_shp",
+    # Geometry functions
+    "MapGeometry",
+    "is_point_in_polygon",
+    "read_coordinates_from_file",
+    "polygon_from_coordinates",
+    "create_geojson_from_points",
+    "get_polygon_from_geojson",
+    "get_map_geometry_from_poly",
+    # Interactive functions
+    "download_shp_interactive",
+]

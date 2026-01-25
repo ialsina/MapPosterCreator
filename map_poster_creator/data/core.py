@@ -25,11 +25,8 @@ from map_poster_creator.data.getters import (
     get_region_polygons,
     get_region_centroids,
 )
-from map_poster_creator.geometry import (
-    is_point_in_polygon,
-    _get_city_polygon_from_geoboundaries,
-    _polygon_to_geojson_file,
-)
+# Import geometry functions locally to avoid circular imports
+# (geometry.py imports from data.getters, which creates a cycle)
 
 
 GEOJSON_URL = "https://geojson.io/#map=10/{latitude}/{longitude}"
@@ -232,6 +229,10 @@ def get_geojson_path_from_geoboundaries(
             return filepath
 
     # Get polygon from geoboundaries
+    # Import from data.geometry (data-dependent) and geometry (pure utility)
+    from map_poster_creator.data.geometry import _get_city_polygon_from_geoboundaries
+    from map_poster_creator.geometry import _polygon_to_geojson_file
+
     try:
         polygon = _get_city_polygon_from_geoboundaries(city_series)
     except ValueError as e:
@@ -300,6 +301,9 @@ def _extract_shp_url(node: Tree) -> str:
 
 def _calculate_point_choose(city_point: Point, sorted_distances, city: str) -> Tree:
     """Calculate which region to choose based on point-in-polygon check."""
+    # Import locally to avoid circular import
+    from map_poster_creator.geometry import is_point_in_polygon
+
     for region_node, _ in sorted_distances:
         for region_polygon in get_region_polygons(region_node):
             if is_point_in_polygon(city_point, region_polygon):
