@@ -49,6 +49,10 @@ mapoc = "map_poster_creator.entrypoints:map_poster"
 [project.optional-dependencies]
 dev = [
     "pre-commit>=4.0",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-mock",
     "ruff>=0.9",
 ]
 
