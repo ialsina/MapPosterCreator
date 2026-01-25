@@ -13,24 +13,31 @@ from map_poster_creator.data.getters import (
     get_cities_geonames,
 )
 
-# Import core functions (including private utility functions)
+# Import core functions
 from map_poster_creator.data.core import (
     resolve_city,
     find_download_shp,
     find_download_shp_from_point,
     get_geojson_path_from_geoboundaries,
+)
+
+# Import constants from config
+from map_poster_creator.config import (
     GEOJSON_URL,
     GEOFABRIK_URL,
     GEOFABRIK_HREF_ATTRIBUTE_END,
-    is_valid_download_url,
-    is_valid_a_tag,
-    # Private utility functions
+)
+
+# Import utility functions from data.utils
+from map_poster_creator.data.utils import (
     _open_text_editor,
     _remove_hash_trailing_lines,
     _ask_reuse,
     _exit_if_empty_file,
     _find_shp_url,
     _download_extract_shp,
+    is_valid_download_url,
+    is_valid_a_tag,
 )
 
 # Import geometry functions directly (no circular import since geometry.py no longer imports from data)
@@ -69,18 +76,19 @@ __all__ = [
     "find_download_shp",
     "find_download_shp_from_point",
     "get_geojson_path_from_geoboundaries",
+    # Constants (from config)
     "GEOJSON_URL",
     "GEOFABRIK_URL",
     "GEOFABRIK_HREF_ATTRIBUTE_END",
-    "is_valid_download_url",
-    "is_valid_a_tag",
-    # Private utility functions
+    # Utility functions (from data.utils)
     "_open_text_editor",
     "_remove_hash_trailing_lines",
     "_ask_reuse",
     "_exit_if_empty_file",
     "_find_shp_url",
     "_download_extract_shp",
+    "is_valid_download_url",
+    "is_valid_a_tag",
     # Geometry functions
     "MapGeometry",
     "is_point_in_polygon",

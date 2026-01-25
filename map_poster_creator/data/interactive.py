@@ -11,37 +11,29 @@ from tempfile import NamedTemporaryFile
 from pandas import DataFrame, Series
 from ete3 import Tree
 
-from map_poster_creator.config import paths
-from map_poster_creator.data.getters import get_country_df
-from map_poster_creator.data.core import (
-    resolve_city,
+from map_poster_creator.config import paths, GEOJSON_URL, GEOFABRIK_URL
+from map_poster_creator.data.core import resolve_city
+from map_poster_creator.data.utils import (
     _open_text_editor,
     _remove_hash_trailing_lines,
     _ask_reuse,
     _exit_if_empty_file,
     _find_shp_url,
     _download_extract_shp,
-    GEOJSON_URL,
-    GEOFABRIK_URL,
+    format_city_candidate,
 )
 
 
 def interactive_resolve_city(df: DataFrame) -> Series:
     """Interactively resolve a city from multiple candidates."""
-
-    def row_txt(row):
-        countries = get_country_df()
-        country_name = countries[countries["Code"] == row["country code"]].iloc[0][
-            "Name"
-        ]
-        admin_lst = [row[f"admin{i} code"] for i in range(4, 0, -1)]
-        admin_lst.append(country_name)
-        admin_txt = ", ".join(el for el in admin_lst if el)
-        return f"{row['name']}, {admin_txt}"
-
     choices = {i: row for i, (_, row) in enumerate(df.iterrows(), start=1)}
     print("Choose city:")
-    print("\t" + "\n\t".join(f"{i}. {row_txt(row)}" for i, row in choices.items()))
+    print(
+        "\t"
+        + "\n\t".join(
+            f"{i}. {format_city_candidate(row)}" for i, row in choices.items()
+        )
+    )
     while True:
         user_input = input("\tSelect choice [1] >")
         if user_input == "":
@@ -64,7 +56,12 @@ def browser_get_geojson_path_interactive(
     if filepath.exists():
         if _ask_reuse(city):
             return filepath
-    city_series = resolve_city(city=city, country=country)
+    city_series = resolve_city(
+        city=city,
+        country=country,
+        interactive=True,
+        interactive_callback=interactive_resolve_city,
+    )
     if city_series is None:
         raise ValueError(
             f'City "{city}" '

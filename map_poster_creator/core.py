@@ -11,6 +11,7 @@ from map_poster_creator.geometry import (
     get_polygon_from_geojson,
     get_map_geometry_from_poly,
     MapGeometry,
+    _polygon_to_geojson_file,
 )
 from map_poster_creator.logs import log_processing, logging
 from map_poster_creator.plotting import plot_and_save
@@ -148,8 +149,6 @@ def create_poster_from_coordinates(
 
     # If geojson_output_path is provided, save the polygon to a file first
     if geojson_output_path is not None:
-        from map_poster_creator.geometry import _polygon_to_geojson_file
-
         _polygon_to_geojson_file(polygon, geojson_output_path)
         geojson_or_polygon = geojson_output_path
     else:
