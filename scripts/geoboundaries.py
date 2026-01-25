@@ -1,16 +1,6 @@
 from shapely.geometry import Point
 
-from map_poster_creator.data.models import _geoboundaries_gdf, _cities_geonames
-
-
-def get_geoboundaries_gdf():
-    """Get geoboundaries GeoDataFrame from the model."""
-    return _geoboundaries_gdf.data
-
-
-def get_cities_geonames():
-    """Get cities GeoNames DataFrame from the model."""
-    return _cities_geonames.data
+from map_poster_creator.data.getters import get_geoboundaries_gdf, get_cities_geonames
 
 
 def get_city_polygon(city_name, country_code):
