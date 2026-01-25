@@ -8,10 +8,10 @@ from geopandas import GeoDataFrame
 from shapely.geometry import Polygon, Point
 
 from map_poster_creator.config import paths
-from map_poster_creator.data.base import CachedModel
+from map_poster_creator.data.base import BaseModel
 
 
-class CityDataFrame(CachedModel[DataFrame]):
+class CityDataFrame(BaseModel[DataFrame]):
     """Model for loading city data from GeoNames."""
 
     is_tiny_feature = False  # Requires full installation
@@ -27,7 +27,7 @@ class CityDataFrame(CachedModel[DataFrame]):
         ).fillna("")
 
 
-class CountryDataFrame(CachedModel[DataFrame]):
+class CountryDataFrame(BaseModel[DataFrame]):
     """Model for loading country data."""
 
     is_tiny_feature = False  # Requires full installation
@@ -41,7 +41,7 @@ class CountryDataFrame(CachedModel[DataFrame]):
         return read_csv(paths.countries)
 
 
-class RegionsTree(CachedModel[Tree]):
+class RegionsTree(BaseModel[Tree]):
     """Model for loading the regions tree from GeoFabrik."""
 
     is_tiny_feature = True  # Available in tiny mode
@@ -55,7 +55,7 @@ class RegionsTree(CachedModel[Tree]):
         return Tree(str(paths.geofabrik_tree_nw), format=1)
 
 
-class GeofabrikUrls(CachedModel[Mapping[str, str]]):
+class GeofabrikUrls(BaseModel[Mapping[str, str]]):
     """Model for loading GeoFabrik URLs mapping."""
 
     is_tiny_feature = True  # Available in tiny mode
@@ -70,7 +70,7 @@ class GeofabrikUrls(CachedModel[Mapping[str, str]]):
             return json.load(rf)
 
 
-class GeoboundariesGDF(CachedModel[GeoDataFrame]):
+class GeoboundariesGDF(BaseModel[GeoDataFrame]):
     """Model for loading geoboundaries GeoDataFrame."""
 
     is_tiny_feature = False  # Requires full installation
@@ -86,7 +86,7 @@ class GeoboundariesGDF(CachedModel[GeoDataFrame]):
         return gdf
 
 
-class CitiesGeonames(CachedModel[DataFrame]):
+class CitiesGeonames(BaseModel[DataFrame]):
     """Model for loading cities GeoNames DataFrame."""
 
     is_tiny_feature = False  # Requires full installation
