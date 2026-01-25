@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
 from map_poster_creator.colorscheme import ColorScheme
-from map_poster_creator.geojson import MapGeometry
+from map_poster_creator.geometry import MapGeometry
 from map_poster_creator.logs import log_processing
 
 
