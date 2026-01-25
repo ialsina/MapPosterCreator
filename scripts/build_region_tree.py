@@ -17,6 +17,14 @@ URL = "https://download.geofabrik.de/"
 UrlsType = Mapping[str, Sequence[str]]
 print = tqdm.write
 
+STORE_URL_SUFFIXES = [
+    "poly",
+    "osm.pbf",
+    "osm.pbf.md5",
+    "shp.zip",
+    "shp.zip.md5",
+]
+
 
 def find_tables(soup):
     subregions = soup.find_all("table", id="subregions", recursive=True)
@@ -57,19 +65,39 @@ def find_tree(session) -> Tuple[TreeNode, UrlsType]:
 
         node = TreeNode(name=unidecode(region))
         node.add_feature("url", url)
-        for table in find_tables(soup):
+
+        # Extract features from tables as they are
+        table_pages = {}
+        tables = find_tables(soup)
+        for table in tables:
             pages = get_pages_from_table(table)
-            for name, href in pages.items():
-                if href.endswith(".html"):
-                    child_node = navigate_node(
-                        url=urljoin(url, href),
-                        region=unidecode(name),
-                        depth=depth + 1,
-                    )
-                    if child_node:
-                        node.add_child(child_node)
-                else:
-                    region_urls[region].append(urljoin(url, href))
+            table_pages.update(pages)
+
+        # Extract features from outside tables that end with STORE_URL_SUFFIXES
+        outside_table_features = set()
+        for a_tag in soup.find_all("a", href=True):
+            # Check if this link is not inside any table
+            parent_table = a_tag.find_parent("table")
+            if parent_table not in tables:
+                href = a_tag.attrs.get("href", "")
+                if any(href.endswith(suffix) for suffix in STORE_URL_SUFFIXES):
+                    outside_table_features.add((a_tag.text, href))
+
+        # Combine table pages and outside table features using sets to prevent repetitions
+        all_pages = set(table_pages.items()) | outside_table_features
+        all_pages = dict(all_pages)  # Convert back to dict for processing
+
+        for name, href in all_pages.items():
+            if href.endswith(".html"):
+                child_node = navigate_node(
+                    url=urljoin(url, href),
+                    region=unidecode(name),
+                    depth=depth + 1,
+                )
+                if child_node:
+                    node.add_child(child_node)
+            else:
+                region_urls[region].append(urljoin(url, href))
         return node
 
     print(f"Building tree. Navigating site {URL}...\n")
@@ -133,4 +161,4 @@ if __name__ == "__main__":
             pprint(_tree_to_json(tree), stream=wf)
 
     with open(paths.geofabrik_urls, "w", encoding="utf-8") as wf:
-        json.dump(urls, wf)
+        json.dump(urls, wf, indent=2)
