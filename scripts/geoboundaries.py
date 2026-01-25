@@ -1,19 +1,15 @@
 from shapely.geometry import Point
 from geopandas import GeoDataFrame
-from pandas import read_csv
-from functools import cache
 
-from map_poster_creator.config import paths
+from map_poster_creator.data.models import _geoboundaries_gdf, _cities_geonames
 
-@cache
 def get_geoboundaries_gdf():
-    gdf = GeoDataFrame.from_file(paths.geoboundaries_path)
-    gdf = gdf.to_crs("EPSG:4326")
-    return gdf
+    """Get geoboundaries GeoDataFrame from the model."""
+    return _geoboundaries_gdf.data
 
-@cache
 def get_cities_geonames():
-    return read_csv(paths.cities_geonames_1000, index_col=0, low_memory=False)
+    """Get cities GeoNames DataFrame from the model."""
+    return _cities_geonames.data
 
 def get_city_polygon(city_name, country_code):
     df = get_cities_geonames()
