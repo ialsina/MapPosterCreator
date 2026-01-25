@@ -299,16 +299,61 @@ def _extract_shp_url(node: Tree) -> str:
     raise ValueError(f"Couldn't find a satisfying a tag for {node.name}.")
 
 
-def _calculate_point_choose(city_point: Point, sorted_distances, city: str) -> Tree:
+def _calculate_point_choose(
+    point: Point, sorted_distances, location_name: str = "point"
+) -> Tree:
     """Calculate which region to choose based on point-in-polygon check."""
     # Import locally to avoid circular import
     from map_poster_creator.geometry import is_point_in_polygon
 
     for region_node, _ in sorted_distances:
         for region_polygon in get_region_polygons(region_node):
-            if is_point_in_polygon(city_point, region_polygon):
+            if is_point_in_polygon(point, region_polygon):
                 return region_node
-    raise ValueError(f"Couldn't find a satisfying region for city {city}.")
+    raise ValueError(f"Couldn't find a satisfying region for {location_name}.")
+
+
+def find_download_shp_from_point(
+    point: Point,
+    calculate_point: Optional[bool] = False,
+    interactive: Optional[bool] = False,
+    location_name: str = "point",
+) -> Path:
+    """
+    Find and download the SHP file for a geographic point.
+
+    Args:
+        point: Geographic point (Point with longitude, latitude)
+        calculate_point: If True, use point-in-polygon check to find region
+        interactive: If True, prompt user to choose region
+        location_name: Name of the location for error messages (default: "point")
+
+    Returns:
+        Path to the extracted SHP directory
+    """
+    distances = []
+    for region_node, region_centroid_lst in get_region_centroids(
+        only_leaf=True
+    ).items():
+        try:
+            distance = min(
+                point.distance(region_centroid)
+                for region_centroid in region_centroid_lst
+            )
+            distances.append((region_node, distance))
+        except ValueError:
+            continue
+    sorted_distances = sorted(distances, key=lambda x: x[1], reverse=False)
+    if calculate_point:
+        region_node = _calculate_point_choose(point, sorted_distances, location_name)
+    elif interactive:
+        from map_poster_creator.data.interactive import interactive_region_choose
+
+        region_node = interactive_region_choose(sorted_distances)
+    else:
+        region_node = sorted_distances[0][0]
+    shp_url = _extract_shp_url(region_node)
+    return _download_extract_shp(shp_url)
 
 
 def find_download_shp(
@@ -342,26 +387,9 @@ def find_download_shp(
         float(city_series["longitude"]),
         float(city_series["latitude"]),
     )
-    distances = []
-    for region_node, region_centroid_lst in get_region_centroids(
-        only_leaf=True
-    ).items():
-        try:
-            distance = min(
-                city_point.distance(region_centroid)
-                for region_centroid in region_centroid_lst
-            )
-            distances.append((region_node, distance))
-        except ValueError:
-            continue
-    sorted_distances = sorted(distances, key=lambda x: x[1], reverse=False)
-    if calculate_point:
-        region_node = _calculate_point_choose(city_point, sorted_distances, city)
-    elif interactive:
-        from map_poster_creator.data.interactive import interactive_region_choose
-
-        region_node = interactive_region_choose(sorted_distances)
-    else:
-        region_node = sorted_distances[0][0]
-    shp_url = _extract_shp_url(region_node)
-    return _download_extract_shp(shp_url)
+    return find_download_shp_from_point(
+        point=city_point,
+        calculate_point=calculate_point,
+        interactive=interactive,
+        location_name=f'city "{city}"',
+    )

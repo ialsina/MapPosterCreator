@@ -17,6 +17,7 @@ from map_poster_creator.data.getters import (
 from map_poster_creator.data.core import (
     resolve_city,
     find_download_shp,
+    find_download_shp_from_point,
     get_geojson_path_from_geoboundaries,
     GEOJSON_URL,
     GEOFABRIK_URL,
@@ -66,6 +67,7 @@ __all__ = [
     # Core functions
     "resolve_city",
     "find_download_shp",
+    "find_download_shp_from_point",
     "get_geojson_path_from_geoboundaries",
     "GEOJSON_URL",
     "GEOFABRIK_URL",

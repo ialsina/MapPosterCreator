@@ -5,8 +5,11 @@ from typing import Optional
 
 from shapely.geometry import Point, Polygon
 
-from map_poster_creator.data.core import find_download_shp, resolve_city
-from map_poster_creator.data.getters import get_city_df
+from map_poster_creator.data.core import (
+    find_download_shp,
+    find_download_shp_from_point,
+    resolve_city,
+)
 
 
 def find_shp_from_polygon(
@@ -17,7 +20,7 @@ def find_shp_from_polygon(
 
     This function attempts to automatically determine the appropriate SHP region
     for a given polygon. It first tries to use the provided city name, and if that
-    fails, it finds the nearest city to the polygon's centroid.
+    fails, it uses the polygon's centroid directly to find the appropriate region.
 
     Args:
         polygon: The polygon to find SHP for
@@ -46,49 +49,18 @@ def find_shp_from_polygon(
         except (ValueError, NotImplementedError):
             pass
 
-    # Otherwise, try to find region from polygon centroid
-    # Find a city near the centroid to use for SHP lookup
+    # Otherwise, use polygon centroid directly to find region
     centroid = polygon.centroid
+    centroid_point = Point(centroid.x, centroid.y)
 
-    # Try to find the nearest city to the centroid
     try:
-        city_df = get_city_df()
-        centroid_point = Point(centroid.x, centroid.y)
-
-        # Find cities within a reasonable distance (rough bounding box)
-        # This is a simplified approach - in production you might want spatial indexing
-        min_lon, min_lat, max_lon, max_lat = polygon.bounds
-        # Expand bounds slightly
-        margin = 0.1
-        candidates = city_df[
-            (city_df["longitude"] >= min_lon - margin)
-            & (city_df["longitude"] <= max_lon + margin)
-            & (city_df["latitude"] >= min_lat - margin)
-            & (city_df["latitude"] <= max_lat + margin)
-        ]
-
-        if not candidates.empty:
-            # Find the closest city
-            candidates = candidates.copy()
-            candidates["distance"] = candidates.apply(
-                lambda row: centroid_point.distance(
-                    Point(float(row["longitude"]), float(row["latitude"]))
-                ),
-                axis=1,
-            )
-            closest_city = candidates.nsmallest(1, "distance").iloc[0]
-
-            # Try to find SHP using this city
-            try:
-                return find_download_shp(
-                    city=closest_city["name"],
-                    country=None,
-                    interactive=False,
-                    calculate_point=True,
-                )
-            except (ValueError, NotImplementedError):
-                pass
-    except Exception:
+        return find_download_shp_from_point(
+            point=centroid_point,
+            calculate_point=True,
+            interactive=False,
+            location_name="polygon centroid",
+        )
+    except (ValueError, NotImplementedError):
         pass
 
     # If all else fails, raise an error
