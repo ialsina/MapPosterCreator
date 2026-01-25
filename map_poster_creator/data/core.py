@@ -99,7 +99,7 @@ def resolve_city(
         return candidates.iloc[0]
     # Interactive mode: prompt if multiple candidates
     if candidates.shape[0] > 1:
-        from map_poster_creator.interactive import interactive_resolve_city
+        from map_poster_creator.data.interactive import interactive_resolve_city
 
         return interactive_resolve_city(candidates)
     # Single candidate or first=True: return the first one
@@ -193,7 +193,7 @@ def get_geojson_path_from_geoboundaries(
             city_series = candidates.iloc[0]
         elif candidates.shape[0] > 1:
             # Interactive mode with multiple candidates: prompt user
-            from map_poster_creator.interactive import interactive_resolve_city
+            from map_poster_creator.data.interactive import interactive_resolve_city
 
             city_series = interactive_resolve_city(candidates)
         else:
@@ -358,7 +358,7 @@ def find_download_shp(
     if calculate_point:
         region_node = _calculate_point_choose(city_point, sorted_distances, city)
     elif interactive:
-        from map_poster_creator.interactive import interactive_region_choose
+        from map_poster_creator.data.interactive import interactive_region_choose
 
         region_node = interactive_region_choose(sorted_distances)
     else:
