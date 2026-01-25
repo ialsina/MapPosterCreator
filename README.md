@@ -43,6 +43,74 @@ thanks [Lamroy95](https://github.com/Lamroy95) for Windows instruction
 #### MacOS
 - `brew install geos`
 
+## Setup
+
+After installing the package, you need to download the required data files. You can do this automatically using the setup script:
+
+### Automated Setup
+
+Run the setup script to download all required data:
+
+```bash
+./scripts/setup.sh
+```
+
+Or manually:
+
+```bash
+bash scripts/setup.sh
+```
+
+The setup script will:
+1. Create GeoNames headers file (required for parsing city data)
+2. Download country list data
+3. Download cities data from GeoNames (cities with population > 1000)
+4. Build GeoFabrik region tree (for finding and downloading shapefiles)
+5. Download geoboundaries data (for city boundary polygons)
+6. Optionally download additional color schemes from Dictionary of Color Combinations
+
+**Note**: The setup process may take 10-30 minutes depending on your internet connection, as it downloads several large data files.
+
+### Manual Setup
+
+If you prefer to run the scripts individually, see [scripts/README.md](scripts/README.md) for detailed documentation of each script.
+
+**Required scripts (in order):**
+```bash
+# 1. Create GeoNames headers
+python scripts/create_geonames_headers.py
+
+# 2. Download countries data
+python scripts/fetch_countries.py
+
+# 3. Download cities data
+python scripts/fetch_data_geonames.py
+
+# 4. Build region tree (takes several minutes)
+python scripts/build_region_tree.py
+
+# 5. Download geoboundaries (large file, takes several minutes)
+python scripts/fetch_geoboundaries.py
+
+# 6. Optional: Download color schemes
+python scripts/fetch_docc_colors.py
+```
+
+### Data Storage
+
+All data files are stored in `~/.mapoc/` by default. You can configure this location in `config.yaml`.
+
+**Required data files:**
+- `countries.csv` - Country codes and names
+- `cities_geonames_1000.csv` - City data with coordinates
+- `geofabrik_tree.nw` - Region hierarchy tree
+- `geofabrik_urls.json` - Region download URLs
+- `geoBoundariesCGAZ_ADM2.geojson` - Administrative boundaries
+
+**Optional data files:**
+- `docc_colors.json` - Additional color schemes
+- `cities_gh_datasets.csv` - Alternative city data source
+
 ## Usage:
 
 1. Create geojson file with one poly. https://geojson.io/
