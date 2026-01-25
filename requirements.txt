@@ -14,3 +14,4 @@ tabulate
 unidecode
 uvicorn
 wget
+pre-commit
