@@ -48,23 +48,40 @@ RUN mkdir -p /root/.mapoc
 # Priority: 1) DATA_DIR build arg, 2) .mapoc in build context, 3) run setup.sh
 # Note: DATA_DIR must be relative to build context. Files are copied at build time.
 #       If the source directory changes after build, rebuild the image to pick up changes.
-RUN if [ -n "$DATA_DIR" ]; then \
+RUN DATA_COPIED=false; \
+    if [ -n "$DATA_DIR" ] && [ "$DATA_DIR" != "" ]; then \
         echo "Using external data directory: $DATA_DIR"; \
-        if [ ! -d "$DATA_DIR" ]; then \
+        echo "Current directory: $(pwd)"; \
+        echo "Checking if directory exists..."; \
+        if [ -d "$DATA_DIR" ]; then \
+            echo "Directory found: $DATA_DIR"; \
+            echo "Copying data files from $DATA_DIR to /root/.mapoc..."; \
+            if [ -n "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then \
+                cp -r "$DATA_DIR"/. /root/.mapoc/ 2>&1 || cp -r "$DATA_DIR"/* /root/.mapoc/ 2>&1 || true; \
+                echo "Data files copied. Skipping setup.sh."; \
+                DATA_COPIED=true; \
+            else \
+                echo "WARNING: DATA_DIR is empty, will run setup.sh instead."; \
+            fi; \
+        else \
             echo "ERROR: DATA_DIR specified but directory does not exist: $DATA_DIR"; \
             echo "Note: DATA_DIR must be relative to the Docker build context."; \
-            exit 1; \
+            echo "Available files/directories:"; \
+            ls -la || true; \
+            echo "Falling back to checking .mapoc in build context..."; \
         fi; \
-        echo "Copying data files from $DATA_DIR to /root/.mapoc..."; \
-        cp -r "$DATA_DIR"/* /root/.mapoc/ 2>/dev/null || true; \
-        cp -r "$DATA_DIR"/.[!.]* /root/.mapoc/ 2>/dev/null || true; \
-        echo "Data files copied. Skipping setup.sh."; \
-    elif [ -d .mapoc ]; then \
+    fi; \
+    if [ "$DATA_COPIED" = "false" ] && [ -d .mapoc ]; then \
         echo "Found .mapoc directory in build context, copying to container..."; \
-        cp -r .mapoc/* /root/.mapoc/ 2>/dev/null || true && \
-        cp -r .mapoc/.[!.]* /root/.mapoc/ 2>/dev/null || true; \
-        echo "Data files copied from build context."; \
-    else \
+        if [ -n "$(ls -A .mapoc 2>/dev/null)" ]; then \
+            cp -r .mapoc/. /root/.mapoc/ 2>&1 || cp -r .mapoc/* /root/.mapoc/ 2>&1 || true; \
+            echo "Data files copied from build context."; \
+            DATA_COPIED=true; \
+        else \
+            echo "WARNING: .mapoc directory is empty, will run setup.sh instead."; \
+        fi; \
+    fi; \
+    if [ "$DATA_COPIED" = "false" ]; then \
         echo "No data directory found, will run setup.sh to download data..."; \
     fi
 
