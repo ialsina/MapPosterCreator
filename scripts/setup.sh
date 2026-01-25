@@ -15,25 +15,20 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Parse command line arguments
-SKIP_COLORS=false
 TINY_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --skip-colors)
-            SKIP_COLORS=true
-            shift
-            ;;
         --tiny)
             TINY_MODE=true
             shift
             ;;
         -h|--help)
-            echo "Usage: $0 [--skip-colors] [--tiny]"
+            echo "Usage: $0 [--tiny]"
             echo ""
             echo "Options:"
-            echo "  --skip-colors     Skip downloading color schemes"
             echo "  --tiny            Minimal setup: only build region tree (coordinates-only mode)"
+            echo "                    and fetch color schemes."
             echo "                    This disables city name lookups and API features"
             echo "  -h, --help        Show this help message"
             echo ""
@@ -86,7 +81,8 @@ if [ "$TINY_MODE" = true ]; then
     echo -e "${YELLOW}========================================${NC}"
     echo -e "${YELLOW}TINY MODE: Minimal setup${NC}"
     echo -e "${YELLOW}========================================${NC}"
-    echo -e "${YELLOW}Only building region tree for coordinate-based usage.${NC}"
+    echo -e "${YELLOW}Only building region tree for coordinate-based usage${NC}"
+    echo -e "${YELLOW}and fetching color schemes.${NC}"
     echo -e "${YELLOW}City name lookups and API features will be disabled.${NC}"
     echo ""
 fi
@@ -125,7 +121,7 @@ fi
 
 # Step 4: Build region tree from GeoFabrik (always run)
 if [ "$TINY_MODE" = true ]; then
-    echo -e "${YELLOW}[1/1] Building GeoFabrik region tree...${NC}"
+    echo -e "${YELLOW}[1/2] Building GeoFabrik region tree...${NC}"
 else
     echo -e "${YELLOW}[4/6] Building GeoFabrik region tree...${NC}"
 fi
@@ -136,6 +132,16 @@ python3 "${SCRIPT_DIR}/build_region_tree.py" || {
 }
 echo -e "${GREEN}✓ Region tree built${NC}"
 echo ""
+
+if [ "$TINY_MODE" = true ]; then
+    # Step 2: Fetch color schemes in tiny mode
+    echo -e "${YELLOW}[2/2] Fetching color schemes...${NC}"
+    python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
+        echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
+    }
+    echo -e "${GREEN}✓ Color schemes fetched${NC}"
+    echo ""
+fi
 
 if [ "$TINY_MODE" = false ]; then
     # Step 5: Fetch geoboundaries data
@@ -149,23 +155,18 @@ if [ "$TINY_MODE" = false ]; then
     echo ""
 
     # Step 6: Fetch color schemes (optional)
-    if [ "$SKIP_COLORS" = true ]; then
-        echo -e "${YELLOW}[6/6] Skipping color schemes (--skip-colors specified)${NC}"
-        echo ""
+    echo -e "${YELLOW}[6/6] Fetching color schemes (optional)...${NC}"
+    read -p "Download additional color schemes from Dictionary of Color Combinations? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
+            echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
+        }
+        echo -e "${GREEN}✓ Color schemes fetched${NC}"
     else
-        echo -e "${YELLOW}[6/6] Fetching color schemes (optional)...${NC}"
-        read -p "Download additional color schemes from Dictionary of Color Combinations? [y/N] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
-                echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
-            }
-            echo -e "${GREEN}✓ Color schemes fetched${NC}"
-        else
-            echo -e "${YELLOW}Skipping color schemes${NC}"
-        fi
-        echo ""
+        echo -e "${YELLOW}Skipping color schemes${NC}"
     fi
+    echo ""
 fi
 
 echo -e "${GREEN}========================================${NC}"
