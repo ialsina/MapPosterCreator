@@ -1,0 +1,14 @@
+{
+  "coordinates": [
+    {"lon": -74.006, "lat": 40.7128},
+    {"lon": -73.935, "lat": 40.7128},
+    {"lon": -73.935, "lat": 40.7589},
+    {"lon": -74.006, "lat": 40.7589}
+  ],
+  "city": "New York",
+  "country": "United States",
+  "color": "white",
+  "width": 15.0,
+  "dpi": 300
+}
+
