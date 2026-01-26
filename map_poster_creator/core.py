@@ -56,6 +56,8 @@ def create_poster(
         output: Path,
 ):
     poly, geometry = _get_boundary_shape(geojson=geojson_path)
+    print(poly)
+    print(geometry)
     roads = _preprocessing_roads(
         poly=poly,
         gdf=GeoDataFrame.from_file(shp_dir / shp_filename.roads, encoding="utf-8")
