@@ -32,12 +32,20 @@ class BaseModel(ABC, Generic[T]):
         """
         Get the cached data. If not yet fetched, calls fetch() first.
 
+        If fetch() raises an exception, it's not cached, so subsequent calls
+        will retry. This allows for retry logic in fetch() implementations.
+
         Returns:
             The cached data.
         """
         if not self._fetched:
-            self._data = self.fetch()
-            self._fetched = True
+            try:
+                self._data = self.fetch()
+                self._fetched = True
+            except Exception:
+                # Don't cache failed fetches - allow retry on next access
+                # This is important for handling transient errors (e.g., file not ready)
+                raise
         return self._data
 
     def clear_cache(self):

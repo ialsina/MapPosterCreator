@@ -37,8 +37,29 @@ def register_endpoints(app):
 
     @app.get("/health")
     async def health():
-        """Health check endpoint."""
-        return {"status": "healthy"}
+        """
+        Health check endpoint.
+
+        Returns status and data availability information.
+        """
+        health_status = {"status": "healthy", "data_ready": False}
+
+        try:
+            # Check if critical data files are accessible
+            from map_poster_creator.data.getters import get_regions_tree
+
+            tree = get_regions_tree()
+            node_count = len(list(tree.traverse()))
+            health_status["data_ready"] = True
+            health_status["regions_tree_nodes"] = node_count
+        except Exception as e:
+            # If data is not ready, still return 200 but indicate not ready
+            # This allows the service to be "alive" but not fully operational
+            health_status["status"] = "starting"
+            health_status["message"] = "Data loading in progress"
+            logger.debug(f"Health check: data not ready yet - {str(e)}")
+
+        return health_status
 
     @app.get("/colors")
     async def list_colors():

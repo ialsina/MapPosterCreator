@@ -229,9 +229,7 @@ class DoccCombination(UserList):
 
 @lru_cache(maxsize=None)
 def get_docc_combinations():
-    with (
-        Session() as session,
-    ):
+    with (Session() as session,):
         session.mount("http://", HTTPAdapter(max_retries=3))
         session.mount("https://", HTTPAdapter(max_retries=3))
         response = session.get(DATA_URL, timeout=30)

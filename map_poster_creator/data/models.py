@@ -1,6 +1,7 @@
 from functools import cache
 import json
 import logging
+import time
 import traceback
 from typing import Mapping, Sequence
 
@@ -56,22 +57,107 @@ class RegionsTree(BaseModel[Tree]):
                 "Could not find region tree data. "
                 "If running in a container, this feature may be unavailable."
             )
+
+        # Check file is readable and has content (might be still copying)
         try:
-            tree = Tree(str(paths.geofabrik_tree_nw), format=1)
-            logger.info(f"Successfully loaded regions tree from {paths.geofabrik_tree_nw}")
-            return tree
-        except Exception as e:
-            error_msg = str(e)
-            full_traceback = traceback.format_exc()
-            logger.error(f"Error loading regions tree: {error_msg}")
-            logger.debug(f"Full traceback:\n{full_traceback}")
-            # Raise error without traceback in message (traceback is in logs)
+            file_size = paths.geofabrik_tree_nw.stat().st_size
+            if file_size == 0:
+                raise FileNotFoundError(
+                    f"Region tree file {paths.geofabrik_tree_nw} exists but is empty. "
+                    "The file may still be copying."
+                )
+        except OSError as e:
             raise FileNotFoundError(
-                f"Could not parse region tree data file {paths.geofabrik_tree_nw}. "
-                f"Error: {error_msg}. "
-                f"Please check that the file is a valid newick format file, "
-                f"or regenerate it using build_region_tree.py"
+                f"Cannot access region tree file {paths.geofabrik_tree_nw}: {e}"
             ) from e
+
+        # Retry logic for robustness (handles cases where file might not be fully ready)
+        # Using format=1 as specified (NHX format with internal node names)
+        # Read file into memory first to avoid file handle/buffering issues
+        max_retries = 5  # Increased from 3
+        retry_delay = 1.0  # Increased initial delay from 0.5s
+
+        last_error = None
+        last_content_size = 0
+
+        for attempt in range(max_retries):
+            try:
+                # Read the entire file into memory first, then parse from string
+                # This avoids potential file handle/buffering issues that might cause
+                # partial reads or parsing errors
+                # Try different encodings if utf-8 fails
+                newick_content = None
+                for encoding in ["utf-8", "latin-1", "ascii"]:
+                    try:
+                        with open(paths.geofabrik_tree_nw, "r", encoding=encoding) as f:
+                            newick_content = f.read()
+                        break
+                    except UnicodeDecodeError:
+                        continue
+
+                if newick_content is None:
+                    raise FileNotFoundError(f"Could not read file with any encoding")
+
+                # Validate we have content
+                if not newick_content or not newick_content.strip():
+                    raise FileNotFoundError(
+                        f"File is empty or contains only whitespace"
+                    )
+
+                # Check if content looks suspiciously small (might be partial copy)
+                content_size = len(newick_content)
+                last_content_size = content_size
+                if content_size < 50:  # A valid newick tree should be at least 50 chars
+                    raise ValueError(
+                        f"File appears incomplete (only {content_size} chars). "
+                        f"Possibly still being copied."
+                    )
+
+                # Parse from string instead of file path
+                # This ensures we have the complete file content before parsing
+                tree = Tree(newick_content, format=1)
+
+                # Validate the tree has nodes
+                node_count = len(list(tree.traverse()))
+                if node_count == 0:
+                    raise ValueError("Parsed tree has no nodes")
+
+                logger.info(
+                    f"Successfully loaded regions tree from {paths.geofabrik_tree_nw} "
+                    f"(attempt {attempt + 1}, size: {content_size} chars, nodes: {node_count})"
+                )
+                return tree
+            except Exception as e:
+                last_error = e
+                error_msg = str(e)
+                logger.debug(
+                    f"Failed to load tree (attempt {attempt + 1}/{max_retries}): {error_msg}"
+                )
+
+                # If we have retries left, wait and try again
+                if attempt < max_retries - 1:
+                    logger.debug(f"Retrying in {retry_delay}s...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    # Last attempt failed, break and raise
+                    break
+
+        # If all retries failed, log and raise
+        error_msg = str(last_error) if last_error else "Unknown error"
+        full_traceback = traceback.format_exc()
+        logger.error(
+            f"Error loading regions tree after {max_retries} attempts: {error_msg} "
+            f"(last file size: {last_content_size} chars)"
+        )
+        logger.debug(f"Full traceback:\n{full_traceback}")
+        # Raise error without traceback in message (traceback is in logs)
+        raise FileNotFoundError(
+            f"Could not parse region tree data file {paths.geofabrik_tree_nw}. "
+            f"Error: {error_msg}. "
+            f"Please check that the file is a valid newick format file, "
+            f"or regenerate it using build_region_tree.py"
+        ) from last_error
 
 
 class GeofabrikUrls(BaseModel[Mapping[str, str]]):
@@ -161,7 +247,9 @@ class RegionPolygonsModel:
                 return []
         except Exception as e:
             # If accessing features fails (e.g., newick parsing error), return empty
-            logger.debug(f"Error accessing features for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}")
+            logger.debug(
+                f"Error accessing features for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}"
+            )
             return []
         try:
             return self._parse_polygons(node.polygon)
@@ -169,7 +257,9 @@ class RegionPolygonsModel:
             return []
         except Exception as e:
             # Catch any other errors when accessing polygon (e.g., newick format issues)
-            logger.debug(f"Error parsing polygon for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}")
+            logger.debug(
+                f"Error parsing polygon for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}"
+            )
             return []
 
     def get(self, node: Tree) -> Sequence[Polygon]:
@@ -186,7 +276,9 @@ class AllRegionPolygonsModel:
     def __init__(self):
         self._cached_get = cache(self._get_all_region_polygons_impl)
         self._region_polygons_model = RegionPolygonsModel()
-        self._regions_tree = RegionsTree()
+        # Use the singleton instance to avoid multiple tree loads and potential conflicts
+        # Access it lazily to avoid circular import issues
+        self._regions_tree_singleton = None
 
     def _get_all_region_polygons_impl(
         self, only_leaf: bool
@@ -194,7 +286,12 @@ class AllRegionPolygonsModel:
         """Internal implementation for getting all region polygons."""
         polygons = {}
         try:
-            tree_iter = self._regions_tree.data.traverse()
+            # Use the singleton tree instance via getter to avoid multiple instances
+            # This ensures we use the same tree instance that might already be loaded
+            from map_poster_creator.data.getters import get_regions_tree
+
+            tree = get_regions_tree()
+            tree_iter = tree.traverse()
             if tree_iter is None:
                 return {}
             for node in tree_iter:
