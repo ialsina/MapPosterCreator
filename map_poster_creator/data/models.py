@@ -1,5 +1,7 @@
 from functools import cache
 import json
+import logging
+import traceback
 from typing import Mapping, Sequence
 
 from pandas import DataFrame, read_csv
@@ -9,6 +11,8 @@ from shapely.geometry import Polygon, Point
 
 from map_poster_creator.config import paths
 from map_poster_creator.data.base import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class CityDataFrame(BaseModel[DataFrame]):
@@ -52,7 +56,22 @@ class RegionsTree(BaseModel[Tree]):
                 "Could not find region tree data. "
                 "If running in a container, this feature may be unavailable."
             )
-        return Tree(str(paths.geofabrik_tree_nw), format=1)
+        try:
+            tree = Tree(str(paths.geofabrik_tree_nw), format=1)
+            logger.info(f"Successfully loaded regions tree from {paths.geofabrik_tree_nw}")
+            return tree
+        except Exception as e:
+            error_msg = str(e)
+            full_traceback = traceback.format_exc()
+            logger.error(f"Error loading regions tree: {error_msg}")
+            logger.error(f"Full traceback:\n{full_traceback}")
+            raise FileNotFoundError(
+                f"Could not parse region tree data file {paths.geofabrik_tree_nw}. "
+                f"Error: {error_msg}. "
+                f"Full traceback: {full_traceback}. "
+                f"Please check that the file is a valid newick format file, "
+                f"or regenerate it using build_region_tree.py"
+            ) from e
 
 
 class GeofabrikUrls(BaseModel[Mapping[str, str]]):
@@ -131,11 +150,26 @@ class RegionPolygonsModel:
 
     def _get_region_polygons_impl(self, node: Tree) -> Sequence[Polygon]:
         """Internal implementation for getting region polygons."""
-        if "polygon" not in node.features:
+        # Only leaf nodes should have polygon features
+        # Accessing features on non-leaf nodes might trigger parsing errors
+        if not node.is_leaf():
+            return []
+        try:
+            # Safely check if polygon feature exists
+            # Accessing node.features might trigger NHX parsing, so catch errors
+            if "polygon" not in node.features:
+                return []
+        except Exception as e:
+            # If accessing features fails (e.g., newick parsing error), return empty
+            logger.debug(f"Error accessing features for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}")
             return []
         try:
             return self._parse_polygons(node.polygon)
         except ValueError:
+            return []
+        except Exception as e:
+            # Catch any other errors when accessing polygon (e.g., newick format issues)
+            logger.debug(f"Error parsing polygon for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}")
             return []
 
     def get(self, node: Tree) -> Sequence[Polygon]:
@@ -159,13 +193,32 @@ class AllRegionPolygonsModel:
     ) -> Mapping[Tree, Sequence[Polygon]]:
         """Internal implementation for getting all region polygons."""
         polygons = {}
-        tree_iter = self._regions_tree.data.traverse()
-        if tree_iter is None:
-            return {}
-        for node in tree_iter:
-            if only_leaf and not node.is_leaf():
-                continue
-            polygons[node] = self._region_polygons_model.get(node)
+        try:
+            tree_iter = self._regions_tree.data.traverse()
+            if tree_iter is None:
+                return {}
+            for node in tree_iter:
+                # Skip non-leaf nodes when only_leaf is True
+                if only_leaf and not node.is_leaf():
+                    continue
+                # Additional safety: only process leaf nodes for polygon access
+                # Non-leaf nodes might cause newick parsing errors when accessing features
+                # Even if only_leaf=False, we skip non-leaf nodes for polygon access
+                # since only leaf nodes should have polygon features
+                if not node.is_leaf():
+                    continue
+                polygons[node] = self._region_polygons_model.get(node)
+        except Exception as e:
+            error_msg = str(e)
+            full_traceback = traceback.format_exc()
+            logger.error(f"Error traversing regions tree: {error_msg}")
+            logger.error(f"Full traceback:\n{full_traceback}")
+            # Re-raise with more context
+            raise RuntimeError(
+                f"Error traversing regions tree: {error_msg}. "
+                f"This may indicate an issue with the newick tree file format. "
+                f"Full traceback: {full_traceback}"
+            ) from e
         return polygons
 
     def get(self, only_leaf: bool = False) -> Mapping[Tree, Sequence[Polygon]]:
