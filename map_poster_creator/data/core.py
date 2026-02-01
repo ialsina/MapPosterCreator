@@ -73,9 +73,12 @@ def resolve_city(
         candidates = city_df[_search_fun(city_df, city)].copy()
     else:
         countries = get_country_df()
-        country_code = countries[
+        country_matches = countries[
             countries["Name"].apply(str.lower) == country.lower()
-        ].iloc[0]["Code"]
+        ]
+        if country_matches.shape[0] == 0:
+            raise ValueError(f'Country "{country}" not found in database.')
+        country_code = country_matches.iloc[0]["Code"]
         candidates = city_df[
             (city_df["asciiname"].apply(str.lower) == unidecode(city).lower())
             & (city_df["country code"] == country_code)
@@ -254,6 +257,11 @@ def find_download_shp_from_point(
         except ValueError:
             continue
     sorted_distances = sorted(distances, key=lambda x: x[1], reverse=False)
+    if len(sorted_distances) == 0:
+        raise ValueError(
+            f"No regions found for {location_name}. "
+            "This may indicate that region data is not properly initialized."
+        )
     if calculate_point:
         region_node = _calculate_point_choose(point, sorted_distances, location_name)
     elif interactive:
