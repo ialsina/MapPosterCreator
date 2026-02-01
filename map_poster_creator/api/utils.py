@@ -47,7 +47,17 @@ def find_shp_from_polygon(
                     interactive=False,
                     calculate_point=True,
                 )
-        except (ValueError, NotImplementedError):
+        except ValueError as e:
+            # If country lookup fails, provide more specific error and don't fall back
+            error_msg = str(e)
+            if "Country" in error_msg and "not found" in error_msg:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{error_msg} Please provide a valid country name or use 'shp_path' parameter.",
+                )
+            # For other ValueErrors (like no regions found), fall through to centroid method
+            pass
+        except NotImplementedError:
             pass
 
     # Otherwise, use polygon centroid directly to find region
