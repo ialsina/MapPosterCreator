@@ -17,8 +17,10 @@ RUN apt-get update && apt-get install -y \
 ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
 ENV C_INCLUDE_PATH=/usr/include/gdal
 
-# Set default data directory
-ENV MAPOC_DATA_DIR=/root/.mapoc
+# Set default data directory (will be overridden by docker-entrypoint.sh if needed)
+# The entrypoint script will ensure data is in /app/data
+ENV MAPOC_DATA_DIR=/app/data
+ENV MAPOC_OUTPUT_DIR=/app/output
 
 # Build argument to disable tiny mode (default: use tiny mode)
 ARG NO_TINY=false
