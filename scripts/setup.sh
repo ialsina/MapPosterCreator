@@ -16,6 +16,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Parse command line arguments
 TINY_MODE=false
+SKIP_COLORS=false
+NON_INTERACTIVE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -23,13 +25,23 @@ while [[ $# -gt 0 ]]; do
             TINY_MODE=true
             shift
             ;;
+        --skip-colors)
+            SKIP_COLORS=true
+            shift
+            ;;
+        --non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
         -h|--help)
-            echo "Usage: $0 [--tiny]"
+            echo "Usage: $0 [--tiny] [--skip-colors] [--non-interactive]"
             echo ""
             echo "Options:"
             echo "  --tiny            Minimal setup: only build region tree (coordinates-only mode)"
             echo "                    and fetch color schemes."
             echo "                    This disables city name lookups and API features"
+            echo "  --skip-colors     Skip fetching color schemes (for faster builds)"
+            echo "  --non-interactive Run in non-interactive mode (no prompts)"
             echo "  -h, --help        Show this help message"
             echo ""
             echo "Note: Set MAPOC_DATA_DIR environment variable to override data directory"
@@ -69,10 +81,14 @@ python3 -c "import map_poster_creator" 2>/dev/null || {
     echo -e "${YELLOW}Note: map_poster_creator package not found.${NC}"
     echo -e "${YELLOW}You may need to install it first: pip install -e .${NC}"
     echo ""
-    read -p "Continue anyway? [y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+    if [ "$NON_INTERACTIVE" = false ]; then
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    else
+        echo -e "${YELLOW}Non-interactive mode: continuing anyway...${NC}"
     fi
 }
 
@@ -133,13 +149,16 @@ python3 "${SCRIPT_DIR}/build_region_tree.py" || {
 echo -e "${GREEN}✓ Region tree built${NC}"
 echo ""
 
-if [ "$TINY_MODE" = true ]; then
+if [ "$TINY_MODE" = true ] && [ "$SKIP_COLORS" = false ]; then
     # Step 2: Fetch color schemes in tiny mode
     echo -e "${YELLOW}[2/2] Fetching color schemes...${NC}"
     python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
         echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
     }
     echo -e "${GREEN}✓ Color schemes fetched${NC}"
+    echo ""
+elif [ "$TINY_MODE" = true ] && [ "$SKIP_COLORS" = true ]; then
+    echo -e "${YELLOW}[2/2] Skipping color schemes (--skip-colors)${NC}"
     echo ""
 fi
 
@@ -155,18 +174,28 @@ if [ "$TINY_MODE" = false ]; then
     echo ""
 
     # Step 6: Fetch color schemes (optional)
-    echo -e "${YELLOW}[6/6] Fetching color schemes (optional)...${NC}"
-    read -p "Download additional color schemes from Dictionary of Color Combinations? [y/N] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
-            echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
-        }
-        echo -e "${GREEN}✓ Color schemes fetched${NC}"
+    if [ "$SKIP_COLORS" = false ]; then
+        echo -e "${YELLOW}[6/6] Fetching color schemes (optional)...${NC}"
+        if [ "$NON_INTERACTIVE" = true ]; then
+            # Non-interactive: skip colors by default for faster builds
+            echo -e "${YELLOW}Skipping color schemes (non-interactive mode)${NC}"
+        else
+            read -p "Download additional color schemes from Dictionary of Color Combinations? [y/N] " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                python3 "${SCRIPT_DIR}/fetch_docc_colors.py" || {
+                    echo -e "${YELLOW}Warning: Failed to fetch color schemes (non-critical)${NC}"
+                }
+                echo -e "${GREEN}✓ Color schemes fetched${NC}"
+            else
+                echo -e "${YELLOW}Skipping color schemes${NC}"
+            fi
+        fi
+        echo ""
     else
-        echo -e "${YELLOW}Skipping color schemes${NC}"
+        echo -e "${YELLOW}[6/6] Skipping color schemes (--skip-colors)${NC}"
+        echo ""
     fi
-    echo ""
 fi
 
 echo -e "${GREEN}========================================${NC}"
