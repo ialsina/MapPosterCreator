@@ -11,6 +11,7 @@ python-multipart
 requests
 shapely
 tabulate
+tqdm
 unidecode
 uvicorn
 wget

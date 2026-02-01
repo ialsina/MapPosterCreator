@@ -6,9 +6,16 @@ import yaml
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_FILE = ROOT_DIR / "config.yaml"
-_DEFAULT_DATA_DIR = Path.home() / ".mapoc"
-_DEFAULT_OUTPUT_DIR = Path.home() / "mapoc"
+# Check for environment variable first (for containerization), then use default
+_DEFAULT_DATA_DIR = Path(os.getenv("MAPOC_DATA_DIR", str(Path.home() / ".mapoc")))
+_DEFAULT_OUTPUT_DIR = Path(os.getenv("MAPOC_OUTPUT_DIR", str(Path.home() / "mapoc")))
 _TEMP_DIR = Path(tempfile.gettempdir())
+
+# Ensure data_dir and output_dir exist
+if _DEFAULT_DATA_DIR:
+    _DEFAULT_DATA_DIR.mkdir(parents=True, exist_ok=True)
+if _DEFAULT_OUTPUT_DIR:
+    _DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @dataclass(frozen=True)
@@ -22,7 +29,14 @@ class Config:
 
     @classmethod
     def from_dict(cls, dct):
-        return cls(**dct)
+        # Convert string paths to Path objects
+        processed = {}
+        for key, value in dct.items():
+            if key in ('data_dir', 'output_dir'):
+                processed[key] = Path(value) if isinstance(value, str) else value
+            else:
+                processed[key] = value
+        return cls(**processed)
 
 
 def get_data_dir() -> Path:
@@ -75,10 +89,11 @@ def get_output_dir() -> Path:
 with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
     _config_dct = yaml.safe_load(cf) or {}
 
-# Override data_dir and output_dir from environment if set
-if os.environ.get("MAPOC_DATA_DIR"):
+# Environment variables take highest precedence over config file
+# Use get_data_dir() and get_output_dir() to ensure directories are created
+if "MAPOC_DATA_DIR" in os.environ:
     _config_dct["data_dir"] = str(get_data_dir())
-if os.environ.get("MAPOC_OUTPUT_DIR"):
+if "MAPOC_OUTPUT_DIR" in os.environ:
     _config_dct["output_dir"] = str(get_output_dir())
 
 config = Config.from_dict(_config_dct)
