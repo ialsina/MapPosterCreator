@@ -64,11 +64,11 @@ class RegionsTree(BaseModel[Tree]):
             error_msg = str(e)
             full_traceback = traceback.format_exc()
             logger.error(f"Error loading regions tree: {error_msg}")
-            logger.error(f"Full traceback:\n{full_traceback}")
+            logger.debug(f"Full traceback:\n{full_traceback}")
+            # Raise error without traceback in message (traceback is in logs)
             raise FileNotFoundError(
                 f"Could not parse region tree data file {paths.geofabrik_tree_nw}. "
                 f"Error: {error_msg}. "
-                f"Full traceback: {full_traceback}. "
                 f"Please check that the file is a valid newick format file, "
                 f"or regenerate it using build_region_tree.py"
             ) from e
@@ -212,12 +212,11 @@ class AllRegionPolygonsModel:
             error_msg = str(e)
             full_traceback = traceback.format_exc()
             logger.error(f"Error traversing regions tree: {error_msg}")
-            logger.error(f"Full traceback:\n{full_traceback}")
-            # Re-raise with more context
+            logger.debug(f"Full traceback:\n{full_traceback}")
+            # Re-raise with more context (without traceback in message)
             raise RuntimeError(
                 f"Error traversing regions tree: {error_msg}. "
-                f"This may indicate an issue with the newick tree file format. "
-                f"Full traceback: {full_traceback}"
+                f"This may indicate an issue with the newick tree file format."
             ) from e
         return polygons
 
