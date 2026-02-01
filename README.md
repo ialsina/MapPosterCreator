@@ -111,6 +111,27 @@ All data files are stored in `~/.mapoc/` by default. You can configure this loca
 - `docc_colors.json` - Additional color schemes
 - `cities_gh_datasets.csv` - Alternative city data source
 
+### Docker Setup
+
+When building the Docker image, the data directory is handled automatically:
+
+**Option 1: Create data on host first (recommended for faster rebuilds)**
+```bash
+# Create data/ directory on host before building
+./scripts/setup.sh --tiny --skip-colors --non-interactive --output data/
+```
+
+**Option 2: Let Docker create it during build**
+```bash
+# Just build - data will be created during build if data/ doesn't exist
+docker build -t map-poster-creator .
+```
+
+**Note**: The `data/` directory is git-ignored. During Docker build:
+- If `data/` exists in the build context, it will be used
+- If `data/` doesn't exist, `setup.sh` will run during the build to create it in the container
+- At runtime, the entrypoint ensures data is available in `/app/data`
+
 ## Usage:
 
 1. Create geojson file with one poly. https://geojson.io/

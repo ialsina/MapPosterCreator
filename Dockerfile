@@ -44,33 +44,31 @@ RUN pip install --no-cache-dir -e .
 # Create data directory
 RUN mkdir -p /root/.mapoc
 
-# Copy DATA_DIR if provided (using a workaround for conditional COPY)
-# Create a temporary directory that will be used if DATA_DIR is provided
-RUN mkdir -p /tmp/data-source
+# Handle data directory: use data/ from build context if exists, otherwise create it
+# Create necessary directories first
+RUN mkdir -p /app/data_source
 
-# Copy DATA_DIR if provided (this will be a no-op if DATA_DIR is empty due to .dockerignore)
-# Note: To use DATA_DIR, create a .dockerignore that doesn't exclude it, or structure your build differently
-# For now, we'll handle it in the RUN command below
-
-# Run setup.sh or copy from DATA_DIR
-# Copy data from /root/.mapoc to /app/data_built for volume mounting support
-RUN if [ -n "$DATA_DIR" ] && [ -d "$DATA_DIR" ]; then \
+# Handle data directory: use copied data/, DATA_DIR arg, or run setup.sh
+# Note: data/ is already copied by "COPY . ." above if it exists in build context
+# Priority: 1) data/ from build context, 2) DATA_DIR arg, 3) run setup.sh
+RUN if [ -d "/app/data" ] && [ -n "$(ls -A /app/data 2>/dev/null)" ] && \
+       [ -f "/app/data/geofabrik_tree.nw" ] 2>/dev/null; then \
+        echo "Using data/ directory from build context (host)"; \
+        cp -r /app/data/* /app/data_source/ 2>/dev/null || true; \
+        echo "Data copied from host data/ directory to /app/data_source"; \
+    elif [ -n "$DATA_DIR" ] && [ -d "$DATA_DIR" ]; then \
         echo "Using DATA_DIR=$DATA_DIR"; \
-        cp -r "$DATA_DIR"/* /root/.mapoc/ 2>/dev/null || true; \
-        mkdir -p /app/data_built && \
-        cp -r /root/.mapoc/* /app/data_built/ 2>/dev/null || true; \
+        cp -r "$DATA_DIR"/* /app/data_source/ 2>/dev/null || true; \
     elif [ "$NO_TINY" = "true" ] || [ "$NO_TINY" = "1" ]; then \
-        echo "Running setup.sh in full mode (NO_TINY=true)"; \
+        echo "data/ not found in build context. Running setup.sh in full mode (NO_TINY=true)"; \
         chmod +x scripts/setup.sh && \
-        bash scripts/setup.sh --skip-colors --non-interactive && \
-        mkdir -p /app/data_built && \
-        cp -r /root/.mapoc/* /app/data_built/ 2>/dev/null || true; \
+        bash scripts/setup.sh --skip-colors --non-interactive --output /app/data_source && \
+        echo "Data created in /app/data_source"; \
     else \
-        echo "Running setup.sh in tiny mode (default)"; \
+        echo "data/ not found in build context. Running setup.sh in tiny mode (default)"; \
         chmod +x scripts/setup.sh && \
-        bash scripts/setup.sh --tiny --skip-colors --non-interactive && \
-        mkdir -p /app/data_built && \
-        cp -r /root/.mapoc/* /app/data_built/ 2>/dev/null || true; \
+        bash scripts/setup.sh --tiny --skip-colors --non-interactive --output /app/data_source && \
+        echo "Data created in /app/data_source"; \
     fi
 
 # Create necessary directories
