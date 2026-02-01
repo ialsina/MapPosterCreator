@@ -18,6 +18,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TINY_MODE=false
 SKIP_COLORS=false
 NON_INTERACTIVE=false
+OUTPUT_DIR=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -33,8 +34,12 @@ while [[ $# -gt 0 ]]; do
             NON_INTERACTIVE=true
             shift
             ;;
+        --output)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
         -h|--help)
-            echo "Usage: $0 [--tiny] [--skip-colors] [--non-interactive]"
+            echo "Usage: $0 [--tiny] [--skip-colors] [--non-interactive] [--output DIR]"
             echo ""
             echo "Options:"
             echo "  --tiny            Minimal setup: only build region tree (coordinates-only mode)"
@@ -42,9 +47,10 @@ while [[ $# -gt 0 ]]; do
             echo "                    This disables city name lookups and API features"
             echo "  --skip-colors     Skip fetching color schemes (for faster builds)"
             echo "  --non-interactive Run in non-interactive mode (no prompts)"
+            echo "  --output DIR      Specify output directory for data files (default: ~/.mapoc/)"
             echo "  -h, --help        Show this help message"
             echo ""
-            echo "Note: Set MAPOC_DATA_DIR environment variable to override data directory"
+            echo "Note: --output takes precedence over MAPOC_DATA_DIR environment variable"
             exit 0
             ;;
         *)
@@ -55,8 +61,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if MAPOC_DATA_DIR is set, otherwise use default
-if [ -n "$MAPOC_DATA_DIR" ]; then
+# Set MAPOC_DATA_DIR from --output option if provided
+if [ -n "$OUTPUT_DIR" ]; then
+    export MAPOC_DATA_DIR="$OUTPUT_DIR"
+    # Create directory if it doesn't exist
+    mkdir -p "$MAPOC_DATA_DIR"
+    echo -e "${YELLOW}Using data directory: $MAPOC_DATA_DIR${NC}"
+    echo ""
+elif [ -n "$MAPOC_DATA_DIR" ]; then
     echo -e "${YELLOW}Using data directory: $MAPOC_DATA_DIR${NC}"
     echo ""
 fi
@@ -202,7 +214,10 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Setup completed successfully!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-if [ -n "$MAPOC_DATA_DIR" ]; then
+# Use OUTPUT_DIR if set, otherwise MAPOC_DATA_DIR, otherwise default
+if [ -n "$OUTPUT_DIR" ]; then
+    echo "Data files are stored in: $OUTPUT_DIR"
+elif [ -n "$MAPOC_DATA_DIR" ]; then
     echo "Data files are stored in: $MAPOC_DATA_DIR"
 else
     echo "Data files are stored in: ~/.mapoc/"
