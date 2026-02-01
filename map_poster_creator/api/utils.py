@@ -13,20 +13,15 @@ from map_poster_creator.data.core import (
 )
 
 
-def find_shp_from_polygon(
-    polygon: Polygon, city: Optional[str] = None, country: Optional[str] = None
+def find_shp_from_latitude_longitude(
+    latitude: float, longitude: float
 ) -> Path:
     """
-    Find the SHP directory for a polygon by using its centroid or city name.
-
-    This function attempts to automatically determine the appropriate SHP region
-    for a given polygon. It first tries to use the provided city name, and if that
-    fails, it uses the polygon's centroid directly to find the appropriate region.
+    Find the SHP directory for a latitude and longitude.
 
     Args:
-        polygon: The polygon to find SHP for
-        city: Optional city name to help locate the region
-        country: Optional country name to help locate the region
+        latitude: Latitude coordinate
+        longitude: Longitude coordinate
 
     Returns:
         Path to the SHP directory
@@ -34,6 +29,63 @@ def find_shp_from_polygon(
     Raises:
         HTTPException: If SHP region cannot be determined
     """
+    # Create a Point from the lat/lon coordinates
+    # Note: Point uses (x, y) which corresponds to (lon, lat)
+    point = Point(longitude, latitude)
+
+    try:
+        return find_download_shp_from_point(
+            point=point,
+            calculate_point=True,
+            interactive=False,
+            location_name=f"point ({latitude}, {longitude})",
+        )
+    except (ValueError, NotImplementedError) as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not automatically determine SHP region from coordinates ({latitude}, {longitude}): {str(e)}. Please provide 'shp_path' or 'city' parameter.",
+        )
+
+
+def find_shp_from_polygon(
+    polygon: Polygon,
+    city: Optional[str] = None,
+    country: Optional[str] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+) -> Path:
+    """
+    Find the SHP directory for a polygon by using lat/lon, city name, or centroid.
+
+    This function attempts to automatically determine the appropriate SHP region
+    for a given polygon. It prioritizes:
+    1. Explicit lat/lon coordinates (if provided)
+    2. City name (if provided)
+    3. Polygon centroid (as fallback)
+
+    Args:
+        polygon: The polygon to find SHP for
+        city: Optional city name to help locate the region
+        country: Optional country name to help locate the region
+        latitude: Optional latitude coordinate to directly locate the region
+        longitude: Optional longitude coordinate to directly locate the region
+
+    Returns:
+        Path to the SHP directory
+
+    Raises:
+        HTTPException: If SHP region cannot be determined
+    """
+    # If lat/lon are provided, use them directly (highest priority)
+    if latitude is not None and longitude is not None:
+        try:
+            return find_shp_from_latitude_longitude(latitude, longitude)
+        except HTTPException:
+            raise
+        except Exception as e:
+            # If lat/lon lookup fails, fall through to other methods
+            pass
+
     # If city is provided, use it to find SHP
     if city:
         try:

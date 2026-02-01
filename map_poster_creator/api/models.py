@@ -43,6 +43,26 @@ class PosterRequest(BaseModel):
             "Use with 'city' for better accuracy."
         ),
     )
+    latitude: Optional[float] = Field(
+        None,
+        ge=-90,
+        le=90,
+        description=(
+            "Latitude coordinate to directly locate the SHP region. "
+            "If provided along with longitude, this bypasses city/country lookup. "
+            "Takes priority over city/country parameters."
+        ),
+    )
+    longitude: Optional[float] = Field(
+        None,
+        ge=-180,
+        le=180,
+        description=(
+            "Longitude coordinate to directly locate the SHP region. "
+            "If provided along with latitude, this bypasses city/country lookup. "
+            "Takes priority over city/country parameters."
+        ),
+    )
     color: str = Field(
         "white",
         description="Color scheme name. Use /colors endpoint to see available schemes.",
@@ -75,6 +95,26 @@ class PosterRequestSimple(BaseModel):
     )
     country: Optional[str] = Field(
         None, description="Country name to help find the SHP region automatically"
+    )
+    latitude: Optional[float] = Field(
+        None,
+        ge=-90,
+        le=90,
+        description=(
+            "Latitude coordinate to directly locate the SHP region. "
+            "If provided along with longitude, this bypasses city/country lookup. "
+            "Takes priority over city/country parameters."
+        ),
+    )
+    longitude: Optional[float] = Field(
+        None,
+        ge=-180,
+        le=180,
+        description=(
+            "Longitude coordinate to directly locate the SHP region. "
+            "If provided along with latitude, this bypasses city/country lookup. "
+            "Takes priority over city/country parameters."
+        ),
     )
     color: str = Field(
         "white",

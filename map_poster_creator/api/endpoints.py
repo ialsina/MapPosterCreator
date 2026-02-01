@@ -92,7 +92,11 @@ def register_endpoints(app):
                 # Try to find SHP automatically
                 try:
                     shp_dir = find_shp_from_polygon(
-                        polygon, request.city, request.country
+                        polygon,
+                        city=request.city,
+                        country=request.country,
+                        latitude=request.latitude,
+                        longitude=request.longitude,
                     )
                 except HTTPException:
                     raise
@@ -174,6 +178,8 @@ def register_endpoints(app):
             shp_path=request.shp_path,
             city=request.city,
             country=request.country,
+            latitude=request.latitude,
+            longitude=request.longitude,
             color=request.color,
             width=request.width,
             dpi=request.dpi,
