@@ -1,5 +1,7 @@
 """API endpoint handlers."""
 
+import logging
+import traceback
 from pathlib import Path
 from uuid import uuid4
 
@@ -12,6 +14,8 @@ from map_poster_creator.core import create_poster_from_coordinates
 from map_poster_creator.data import polygon_from_coordinates
 from map_poster_creator.api.models import Coordinate, PosterRequest, PosterRequestSimple
 from map_poster_creator.api.utils import find_shp_from_polygon
+
+logger = logging.getLogger(__name__)
 
 
 def register_endpoints(app):
@@ -101,9 +105,14 @@ def register_endpoints(app):
                 except HTTPException:
                     raise
                 except Exception as e:
+                    error_msg = str(e)
+                    full_traceback = traceback.format_exc()
+                    logger.error(f"Error finding SHP region: {error_msg}")
+                    logger.debug(f"Full traceback:\n{full_traceback}")
+                    # Return user-friendly error without traceback
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Could not automatically determine SHP region: {str(e)}. Please provide 'shp_path' or 'city' parameter.",
+                        detail="Could not automatically determine SHP region. Please provide 'shp_path' or 'city' parameter.",
                     )
 
             # Get color scheme

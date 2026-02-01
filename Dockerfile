@@ -21,6 +21,7 @@ ENV C_INCLUDE_PATH=/usr/include/gdal
 # The entrypoint script will ensure data is in /app/data
 ENV MAPOC_DATA_DIR=/app/data
 ENV MAPOC_OUTPUT_DIR=/app/output
+ENV LOG_DIR=/app/logs
 
 # Build argument to disable tiny mode (default: use tiny mode)
 ARG NO_TINY=false
@@ -74,7 +75,7 @@ RUN if [ -d "/app/data" ] && [ -n "$(ls -A /app/data 2>/dev/null)" ] && \
     fi
 
 # Create necessary directories
-RUN mkdir -p /app/data /app/output
+RUN mkdir -p /app/data /app/output /app/logs
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
