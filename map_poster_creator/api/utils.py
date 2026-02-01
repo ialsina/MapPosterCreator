@@ -17,9 +17,7 @@ from map_poster_creator.data.core import (
 logger = logging.getLogger(__name__)
 
 
-def find_shp_from_latitude_longitude(
-    latitude: float, longitude: float
-) -> Path:
+def find_shp_from_latitude_longitude(latitude: float, longitude: float) -> Path:
     """
     Find the SHP directory for a latitude and longitude.
 
@@ -47,7 +45,9 @@ def find_shp_from_latitude_longitude(
     except (ValueError, NotImplementedError) as e:
         error_msg = str(e)
         full_traceback = traceback.format_exc()
-        logger.error(f"Error finding SHP from lat/lon ({latitude}, {longitude}): {error_msg}")
+        logger.error(
+            f"Error finding SHP from lat/lon ({latitude}, {longitude}): {error_msg}"
+        )
         logger.debug(f"Full traceback:\n{full_traceback}")
         # Return user-friendly error without traceback
         raise HTTPException(
@@ -57,7 +57,9 @@ def find_shp_from_latitude_longitude(
     except Exception as e:
         error_msg = str(e)
         full_traceback = traceback.format_exc()
-        logger.error(f"Unexpected error finding SHP from lat/lon ({latitude}, {longitude}): {error_msg}")
+        logger.error(
+            f"Unexpected error finding SHP from lat/lon ({latitude}, {longitude}): {error_msg}"
+        )
         logger.debug(f"Full traceback:\n{full_traceback}")
         # Check if it's a newick format error
         if "newick format" in error_msg.lower() or ":1" in error_msg:

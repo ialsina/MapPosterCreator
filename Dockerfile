@@ -87,6 +87,15 @@ EXPOSE 8000
 # Set environment variable for uvicorn
 ENV PYTHONUNBUFFERED=1
 
+# Add healthcheck to verify the service is ready
+# Uses the /health endpoint which checks if data is loaded
+# start-period allows time for initial data loading and startup
+HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=3 \
+    CMD python -c "import urllib.request, json, sys; \
+    response = urllib.request.urlopen('http://localhost:8000/health'); \
+    data = json.loads(response.read()); \
+    sys.exit(0 if data.get('data_ready') else 1)" || exit 1
+
 # Use entrypoint to handle data copying
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 

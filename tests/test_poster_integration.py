@@ -151,9 +151,9 @@ class TestPosterIntegration:
 
         # Additional validation: check file is reasonably sized (not just header)
         # A real poster should be at least a few KB
-        assert file_size > 1000, (
-            f"Output file seems too small (size: {file_size} bytes)"
-        )
+        assert (
+            file_size > 1000
+        ), f"Output file seems too small (size: {file_size} bytes)"
 
         # Print output location for user reference
         print(f"\n✓ Poster created successfully at: {output_file}")
@@ -209,16 +209,16 @@ class TestPosterIntegration:
 
             # Verify file was created and is valid
             assert output_file.exists(), f"Output file for {color_name} was not created"
-            assert output_file.stat().st_size > 0, (
-                f"Output file for {color_name} is empty"
-            )
+            assert (
+                output_file.stat().st_size > 0
+            ), f"Output file for {color_name} is empty"
 
             # Verify PNG magic bytes
             with open(output_file, "rb") as f:
                 first_bytes = f.read(8)
-                assert first_bytes == b"\x89PNG\r\n\x1a\n", (
-                    f"Output for {color_name} does not have PNG magic bytes"
-                )
+                assert (
+                    first_bytes == b"\x89PNG\r\n\x1a\n"
+                ), f"Output for {color_name} does not have PNG magic bytes"
 
     def test_poster_different_dpi_values(self, temp_dir, nyc_coordinates, nyc_centroid):
         """Test creating posters with different DPI values using real data."""
@@ -304,12 +304,12 @@ class TestPosterIntegration:
             )
 
             # Verify file was created
-            assert output_file.exists(), (
-                f"Output file for width {width} was not created"
-            )
-            assert output_file.stat().st_size > 0, (
-                f"Output file for width {width} is empty"
-            )
+            assert (
+                output_file.exists()
+            ), f"Output file for width {width} was not created"
+            assert (
+                output_file.stat().st_size > 0
+            ), f"Output file for width {width} is empty"
 
             # Verify PNG format
             with open(output_file, "rb") as f:

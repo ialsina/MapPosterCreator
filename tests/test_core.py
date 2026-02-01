@@ -401,15 +401,15 @@ class TestCreatePoster:
                             greens_found = any(
                                 "gis_osm_pois" in path for path in call_paths
                             )
-                            assert roads_found, (
-                                f"Roads shapefile not found in calls: {call_paths}"
-                            )
-                            assert water_found, (
-                                f"Water shapefile not found in calls: {call_paths}"
-                            )
-                            assert greens_found, (
-                                f"Greens shapefile not found in calls: {call_paths}"
-                            )
+                            assert (
+                                roads_found
+                            ), f"Roads shapefile not found in calls: {call_paths}"
+                            assert (
+                                water_found
+                            ), f"Water shapefile not found in calls: {call_paths}"
+                            assert (
+                                greens_found
+                            ), f"Greens shapefile not found in calls: {call_paths}"
 
 
 class TestCreatePosterFromCoordinates:

@@ -32,7 +32,7 @@ class Config:
         # Convert string paths to Path objects
         processed = {}
         for key, value in dct.items():
-            if key in ('data_dir', 'output_dir'):
+            if key in ("data_dir", "output_dir"):
                 processed[key] = Path(value) if isinstance(value, str) else value
             else:
                 processed[key] = value
