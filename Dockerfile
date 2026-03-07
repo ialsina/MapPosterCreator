@@ -1,3 +1,5 @@
+# MapPosterCreator – built image is tagged at build time (e.g. by Compose or GitHub Actions).
+# Convention: ghcr.io/<owner>/<image>:<tag> (GitHub Container Registry).
 # Use Python 3.11 slim image as base
 FROM python:3.11-slim
 
