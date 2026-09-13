@@ -34,16 +34,9 @@ ARG NO_TINY=false
 #       If the source directory changes, rebuild the image to pick up changes.
 ARG DATA_DIR=
 
-# Copy requirements file
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the application code
+# Copy the application code and install runtime dependencies from pyproject.toml
 COPY . .
 
-# Install the package in development mode
 RUN pip install --no-cache-dir -e .
 
 # Create data directory
@@ -67,13 +60,21 @@ RUN if [ -d "/app/data" ] && [ -n "$(ls -A /app/data 2>/dev/null)" ] && \
     elif [ "$NO_TINY" = "true" ] || [ "$NO_TINY" = "1" ]; then \
         echo "data/ not found in build context. Running setup.sh in full mode (NO_TINY=true)"; \
         chmod +x scripts/setup.sh && \
-        bash scripts/setup.sh --skip-colors --non-interactive --output /app/data_source && \
+        bash scripts/setup.sh --non-interactive --output /app/data_source && \
         echo "Data created in /app/data_source"; \
     else \
         echo "data/ not found in build context. Running setup.sh in tiny mode (default)"; \
         chmod +x scripts/setup.sh && \
-        bash scripts/setup.sh --tiny --skip-colors --non-interactive --output /app/data_source && \
+        bash scripts/setup.sh --tiny --non-interactive --output /app/data_source && \
         echo "Data created in /app/data_source"; \
+    fi
+
+# Ensure docc_colors.json exists (full non-interactive setup skips it in setup.sh)
+RUN if [ ! -f "/app/data_source/docc_colors.json" ]; then \
+        echo "Generating docc_colors.json..."; \
+        MAPOC_DATA_DIR=/app/data_source python3 /app/scripts/fetch_docc_colors.py; \
+    else \
+        echo "docc_colors.json already present in data source"; \
     fi
 
 # Create necessary directories

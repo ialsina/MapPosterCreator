@@ -25,6 +25,24 @@ check_data_directory() {
 	return 1
 }
 
+# Function to generate docc_colors.json when missing
+ensure_docc_colors() {
+	local data_dir="$1"
+	if [ -f "${data_dir}/docc_colors.json" ]; then
+		echo "✓ docc_colors.json already present in ${data_dir}"
+		return 0
+	fi
+
+	echo "Generating docc_colors.json..."
+	if MAPOC_DATA_DIR="$data_dir" python3 /app/scripts/fetch_docc_colors.py; then
+		echo "✓ docc_colors.json created in ${data_dir}"
+		return 0
+	fi
+
+	echo "Warning: Failed to generate docc_colors.json"
+	return 1
+}
+
 # Function to prepare data directory using setup.sh
 prepare_data_directory() {
 	local output_dir="$1"
@@ -39,7 +57,7 @@ prepare_data_directory() {
 	chmod +x /app/scripts/setup.sh
 
 	# Run setup.sh in tiny mode to create data
-	if /app/scripts/setup.sh --tiny --skip-colors --non-interactive --output "$output_dir"; then
+	if /app/scripts/setup.sh --tiny --non-interactive --output "$output_dir"; then
 		echo "Data directory created successfully: $output_dir"
 		return 0
 	else
@@ -132,6 +150,8 @@ else
 		echo "✓ Verified: geofabrik_tree.nw exists at $MAPOC_DATA_DIR/geofabrik_tree.nw (${file_size} bytes)"
 	fi
 fi
+
+ensure_docc_colors "$MAPOC_DATA_DIR"
 
 # Start the application
 exec "$@"
