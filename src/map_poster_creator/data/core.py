@@ -297,9 +297,7 @@ def find_download_shp_from_point(
             "This may indicate that region data is not properly initialized."
         )
     if len(downloadable_distances) == 0:
-        raise ValueError(
-            f"No regions with downloadable SHP data found for {location_name}."
-        )
+        raise ValueError(f"No regions with downloadable SHP data found for {location_name}.")
 
     # Select the region node based on the method
     if calculate_point:

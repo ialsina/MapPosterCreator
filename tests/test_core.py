@@ -8,11 +8,30 @@ from shapely.geometry import MultiPolygon, Polygon
 from map_poster_creator.colorscheme import ColorScheme
 from map_poster_creator.core import (
     _get_boundary_shape,
+    _load_shapefile_layer,
     _preprocessing,
     _preprocessing_roads,
     create_poster,
     create_poster_from_coordinates,
 )
+
+
+class TestLoadShapefileLayer:
+    """Tests for _load_shapefile_layer function."""
+
+    def test_load_shapefile_layer_passes_bbox(self, sample_polygon, mock_shp_dir):
+        with patch("map_poster_creator.core.GeoDataFrame.from_file") as mock_from_file:
+            mock_from_file.return_value = MagicMock()
+            _load_shapefile_layer(
+                mock_shp_dir,
+                "gis_osm_roads_free_1.shp",
+                sample_polygon,
+            )
+            mock_from_file.assert_called_once_with(
+                mock_shp_dir / "gis_osm_roads_free_1.shp",
+                encoding="utf-8",
+                bbox=sample_polygon.bounds,
+            )
 
 
 class TestGetBoundaryShape:
@@ -353,6 +372,8 @@ class TestCreatePoster:
                             )
                             # Should load roads, water, and greens shapefiles
                             assert mock_from_file.call_count == 3
+                            for call in mock_from_file.call_args_list:
+                                assert "bbox" in call[1]
                             # Check that all three shapefile types were loaded
                             call_paths = [str(call[0][0]) for call in mock_from_file.call_args_list]
                             roads_found = any("gis_osm_roads" in path for path in call_paths)

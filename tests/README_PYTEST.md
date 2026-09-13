@@ -28,8 +28,19 @@ This will install:
 
 ### Run All Tests
 
+By default, `pytest` runs unit tests only (integration tests are excluded):
+
 ```bash
 pytest
+```
+
+### Run Integration Tests
+
+Integration tests download real shapefiles from GeoFabrik and may take several
+minutes:
+
+```bash
+pytest -m integration --no-cov
 ```
 
 ### Run with Coverage Report

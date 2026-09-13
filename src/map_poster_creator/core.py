@@ -41,6 +41,19 @@ def _get_boundary_shape(
     return poly, geometry
 
 
+def _load_shapefile_layer(
+    shp_dir: Path,
+    filename: str,
+    poly: Polygon | MultiPolygon,
+) -> GeoDataFrame:
+    """Load a shapefile layer, restricting reads to the polygon bounding box."""
+    return GeoDataFrame.from_file(
+        shp_dir / filename,
+        encoding="utf-8",
+        bbox=poly.bounds,
+    )
+
+
 @log_processing
 def _preprocessing(poly: Polygon | MultiPolygon, gdf: GeoDataFrame) -> GeoDataFrame:
     def poly_contains(g):
@@ -82,15 +95,15 @@ def create_poster(
     print(geometry)
     roads = _preprocessing_roads(
         poly=poly,
-        gdf=GeoDataFrame.from_file(shp_dir / shp_filename.roads, encoding="utf-8"),
+        gdf=_load_shapefile_layer(shp_dir, shp_filename.roads, poly),
     )
     water = _preprocessing(
         poly=poly,
-        gdf=GeoDataFrame.from_file(shp_dir / shp_filename.water, encoding="utf-8"),
+        gdf=_load_shapefile_layer(shp_dir, shp_filename.water, poly),
     )
     greens = _preprocessing(
         poly=poly,
-        gdf=GeoDataFrame.from_file(shp_dir / shp_filename.greens, encoding="utf-8"),
+        gdf=_load_shapefile_layer(shp_dir, shp_filename.greens, poly),
     )
     plot_and_save(
         roads=roads,

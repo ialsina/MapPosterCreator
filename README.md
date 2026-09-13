@@ -193,11 +193,36 @@ Install development dependencies and run the configured checks:
 ```bash
 pip install -e ".[dev]"
 pre-commit run --all-files
-pytest
 ```
 
-`pytest.ini` enables branch coverage and enforces a 70% threshold. Curl-based
-tests under `tests/` exercise a running HTTP service.
+### Running tests
+
+`pytest.ini` excludes integration tests by default (`-m "not integration"`) and
+enables branch coverage with a 70% threshold.
+
+```bash
+# Default: unit tests with coverage
+pytest
+
+# Unit tests without coverage
+pytest --no-cov
+
+# Unit tests only (explicit marker filter, no coverage)
+pytest -m "not integration" --no-cov
+
+# Fastest local run: skip integration and slow tests, no coverage
+pytest -m "not integration and not slow" --no-cov
+```
+
+Integration tests download real GeoFabrik shapefiles and may take several
+minutes:
+
+```bash
+pytest -m integration --no-cov
+```
+
+See [tests/README_PYTEST.md](tests/README_PYTEST.md) for more detail on markers
+and fixtures.
 
 ## Documentation
 
