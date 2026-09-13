@@ -14,7 +14,7 @@ Repository layout
 ``config.yaml``
   Repository-root configuration loaded by ``map_poster_creator.config``.
 
-``requirements.txt`` and ``setup.py``
+``requirements.txt`` and ``pyproject.toml``
   Runtime dependency list and package metadata/console-script declaration.
 
 ``docs/``
