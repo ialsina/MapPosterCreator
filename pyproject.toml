@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "map_poster_creator"
+dynamic = ["version"]
+description = "Map Poster Creator"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    {name = "Ivan Alsina-Ferrer", email = "opensource@ivalsfer.com"},
+]
+dependencies = [
+    "beautifulsoup4",
+    "colour",
+    "descartes",
+    "ete3",
+    "geopandas",
+    "shapely",
+    "matplotlib",
+    "pandas",
+    "pyyaml",
+    "requests",
+    "tabulate",
+    "unidecode",
+    "wget",
+]
+keywords = ["map", "poster", "osm", "geopandas"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Graphics",
+]
+[project.urls]
+Homepage = "https://github.com/k4m454k/MapPosterCreator"
+
+[project.scripts]
+mapoc = "map_poster_creator.entrypoints:map_poster"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=4.0",
+    "ruff>=0.9",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "map_poster_creator.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+src = ["map_poster_creator", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "B",
+    "E",
+    "F",
+    "I",
+    "UP",
+    "W",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"docs/conf.py" = ["E402"]
+"scripts/*" = ["E501", "B904"]
