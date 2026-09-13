@@ -25,7 +25,7 @@ from pathlib import Path
 # Add parent directory to path so we can import map_poster_creator
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from shapely.geometry import Point, Polygon, box
+from shapely.geometry import Point, Polygon, MultiPolygon, box
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from geopandas import GeoDataFrame
@@ -42,6 +42,26 @@ from map_poster_creator.colorscheme import get_colorscheme, get_available_colors
 from map_poster_creator.data.core import find_download_shp_from_point
 from map_poster_creator.geometry import get_map_geometry_from_poly
 from map_poster_creator.plotting import plot_dataframe, road_width
+
+
+def load_geometry_from_json(json_path: Path):
+    """Load Polygon or MultiPolygon from a JSON geometry file."""
+    if not json_path.exists():
+        raise FileNotFoundError(f"Shape file not found: {json_path}")
+
+    with open(json_path, "r") as f:
+        geojson_data = json.load(f)
+
+    geometry_type = geojson_data.get("type")
+    coords = geojson_data.get("coordinates")
+
+    if geometry_type == "Polygon":
+        return Polygon(coords[0])
+    elif geometry_type == "MultiPolygon":
+        polys = [Polygon(poly[0]) for poly in coords]  # first ring only
+        return MultiPolygon(polys)
+    else:
+        raise ValueError(f"Unsupported geometry type: {geometry_type}")
 
 
 def load_coordinates_from_json(json_path: Path):
@@ -614,6 +634,63 @@ def plot_boundary_on_world_map(polygon: Polygon, output_path: Path, dpi: int = 1
     print(f"  ✓ World map visualization saved: {output_path}")
 
 
+def plot_geometry_on_world_map(geometry, bounds, ax):
+    """Plot Polygon or MultiPolygon superimposed on world map."""
+    # Load world map
+    import geopandas as gpd
+    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+
+    # Clip world to view bounds for performance
+    left, bottom, right, top = bounds
+    view_box = box(left, bottom, right, top)
+    world_clipped = world.clip(view_box)
+
+    # Plot world map first
+    world_clipped.plot(ax=ax, color="lightblue", edgecolor="darkblue", alpha=0.5, zorder=1)
+
+    # Convert input geometry to GeoDataFrame
+    if isinstance(geometry, Polygon):
+        gdf_geom = GeoDataFrame(geometry=[geometry], crs="EPSG:4326")
+    elif isinstance(geometry, MultiPolygon):
+        gdf_geom = GeoDataFrame(geometry=list(geometry.geoms), crs="EPSG:4326")
+    else:
+        raise ValueError("geometry must be Polygon or MultiPolygon")
+
+    # Plot the polygons
+    gdf_geom.plot(ax=ax, color="red", edgecolor="darkred", linewidth=2.5, alpha=0.8, zorder=5)
+
+    # Plot centroids
+    for poly in (geometry.geoms if isinstance(geometry, MultiPolygon) else [geometry]):
+        c = poly.centroid
+        ax.plot(c.x, c.y, "ro", markersize=8, zorder=10, markeredgecolor="darkred", markeredgewidth=1)
+
+    # Set bounds
+    ax.set_xlim(left, right)
+    ax.set_ylim(bottom, top)
+    ax.set_aspect(1.0 / max(0.01, (abs(top - bottom) / abs(right - left))))  # adjust aspect
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.set_title("Multipolygon superimposed on world map")
+
+
+def plot_geometry_zoom_levels(geometry, output_path: Path, dpi: int = 150):
+    """Plot geometry at multiple zoom levels using the zoom_bounds example."""
+    zoom_bounds = [
+        (-180, -90, 180, 90),                  # World
+        (-100, -50, -30, 50),                  # Hemisphere
+        (-80, 8, -78, 10),                     # Regional
+    ]
+
+    fig, axes = plt.subplots(1, len(zoom_bounds), figsize=(20, 6))
+    for ax, b in zip(axes, zoom_bounds):
+        plot_geometry_on_world_map(geometry, b, ax)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
+    plt.close()
+    print(f"  ✓ Geometry zoom levels visualization saved: {output_path}")
+
+
 def plot_layer_black_white(
     gdf: GeoDataFrame,
     geometry,
@@ -931,6 +1008,26 @@ def main():
 
         traceback.print_exc()
 
+    # 1b. Geometry zoom levels visualization (using new function)
+    print("\n1b. Creating geometry zoom levels visualization...")
+    try:
+        # Try to load geometry using the new function (supports MultiPolygon)
+        try:
+            loaded_geometry = load_geometry_from_json(shape_path)
+            plot_geometry_zoom_levels(
+                loaded_geometry, debug_dir / "debug_geometry_zoom_levels.png", dpi=150
+            )
+        except Exception:
+            # Fallback to polygon if MultiPolygon loading fails
+            plot_geometry_zoom_levels(
+                polygon, debug_dir / "debug_geometry_zoom_levels.png", dpi=150
+            )
+    except Exception as e:
+        print(f"  ✗ Error creating geometry zoom levels visualization: {e}")
+        import traceback
+
+        traceback.print_exc()
+
     # 2. Raw data visualizations
     try:
         plot_raw_data(shp_dir, polygon, geometry, debug_dir, dpi=300, width=15.0)
@@ -1054,6 +1151,7 @@ def main():
     print(f"  Final poster: {output_file}")
     print(f"  Debug visualizations: {debug_dir}")
     print("    - Boundary on world map: debug_boundary_world_map.png")
+    print("    - Geometry zoom levels: debug_geometry_zoom_levels.png")
     print("    - Raw roads: debug_raw_roads.png")
     print("    - Raw water: debug_raw_water.png")
     print("    - Raw greens: debug_raw_greens.png")
