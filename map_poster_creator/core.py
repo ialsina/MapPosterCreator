@@ -81,6 +81,8 @@ def create_poster(
         output: Path where the poster image will be saved.
     """
     poly, geometry = _get_boundary_shape(geojson_or_polygon=geojson_path)
+    print(poly)
+    print(geometry)
     roads = _preprocessing_roads(
         poly=poly,
         gdf=GeoDataFrame.from_file(shp_dir / shp_filename.roads, encoding="utf-8"),
