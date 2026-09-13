@@ -45,6 +45,40 @@ with:
    mapoc --version
    mapoc --help
 
+Prepare application data
+------------------------
+
+City lookup, automatic boundaries, and Geofabrik selection use generated
+indexes that are not bundled with the source. The setup orchestrator creates
+them in ``~/.mapoc`` by default:
+
+.. code-block:: bash
+
+   bash scripts/setup.sh
+
+Full setup creates GeoNames headers, country and city indexes, a Geofabrik
+region tree and URL map, geoBoundaries data, and optionally the extended
+colour library. It performs large network downloads and may take several
+minutes.
+
+For coordinate-based operation without city lookup or automatic
+geoBoundaries, use the smaller setup:
+
+.. code-block:: bash
+
+   bash scripts/setup.sh --tiny --non-interactive
+
+Use ``--output DIR`` to select another data directory. It takes precedence
+over ``MAPOC_DATA_DIR``. See :doc:`data-sources` for all modes and generated
+files.
+
+Run an application interface
+----------------------------
+
+Use :doc:`quickstart` for the command-line application. To expose the HTTP
+interface, see :doc:`service`. A Docker image is also included, subject to
+the current build limitation described in :doc:`containerization`.
+
 Build this documentation
 ------------------------
 

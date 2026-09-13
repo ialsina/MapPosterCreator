@@ -58,8 +58,9 @@ Storage precedence and caveat
 ``get_colorschemes`` loads both the user ``colors.json`` and generated
 ``docc_colors.json``. Later loaded entries replace earlier entries with the
 same name. The generated Dictionary of Colour Combinations file is expected to
-exist when the colour module loads; use the generator in :doc:`data-sources`
-to create it if it is missing.
+exist when colour schemes are loaded, even if only built-in schemes are
+requested. Use the generator in :doc:`data-sources` to create it if it is
+missing.
 
 The command-line ``add`` operation writes the complete currently loaded map to
 the user file. It does not clear the in-process cache, so changes made outside

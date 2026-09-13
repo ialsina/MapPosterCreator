@@ -16,6 +16,8 @@ for provenance, licensing, and scope.
    installation
    quickstart
    cli
+   service
+   containerization
    configuration
    data-sources
    color-schemes

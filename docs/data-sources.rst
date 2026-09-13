@@ -9,9 +9,8 @@ Runtime sources
 ---------------
 
 GeoJSON boundary
-  A polygon FeatureCollection created by the user. During interactive use the
-  application opens geojson.io centred on the resolved city, then opens a
-  temporary text editor so the GeoJSON can be pasted into the created file.
+  A Polygon or MultiPolygon FeatureCollection supplied by the user, or a
+  polygon constructed from coordinate pairs.
 
 Geofabrik
   `Geofabrik <https://download.geofabrik.de/>`_ distributes the
@@ -28,28 +27,78 @@ Country list
   The ``datasets/country-list`` CSV is used to map GeoNames country codes to
   country names.
 
+geoBoundaries
+  The ``geoBoundariesCGAZ_ADM2.geojson`` data set supplies administrative
+  boundaries for the default city-driven CLI workflow. Matching first uses
+  the resolved city's point and then falls back to name-based filtering.
+
 Bootstrap local indexes
 -----------------------
 
-Run these from the repository root after installing the package dependencies:
+Run the setup orchestrator from the repository root after installing the
+package:
 
 .. code-block:: bash
 
-   python scripts/fetch_countries.py
-   python scripts/fetch_data_geonames.py
-   python scripts/build_region_tree.py
+   bash scripts/setup.sh
 
-They respectively create ``countries.csv``, the normalized GeoNames city CSV,
-and Geofabrik's region tree/URLs beneath the configured data directory. The
-region-tree script crawls Geofabrik pages and downloads ``.poly`` region
-boundaries, so it can take time and requires network access.
+Full setup runs:
 
-The GeoNames script reads ``<data_dir>/geonames_headers.txt`` to name the
-tab-separated fields, but that file is not included in this repository. It
-will fail until a compatible GeoNames column-definition file is supplied at
-that path. This makes automatic city lookup unavailable from a clean checkout
-without additional setup. The explicit-input workflow remains usable without
-these indexes.
+1. ``create_geonames_headers.py``
+2. ``fetch_countries.py``
+3. ``fetch_data_geonames.py``
+4. ``build_region_tree.py``
+5. ``fetch_geoboundaries.py``
+6. optional ``fetch_docc_colors.py``
+
+The first step now generates the GeoNames column-definition file required by
+the third step. The region-tree script crawls Geofabrik pages and downloads
+``.poly`` boundaries. The geoBoundaries file is large. Full setup can
+therefore take several minutes and requires network access.
+
+Setup options
+-------------
+
+.. code-block:: text
+
+   scripts/setup.sh [--tiny] [--skip-colors] [--non-interactive]
+                    [--output DIR]
+
+``--tiny``
+  Build only the Geofabrik region tree and, unless skipped, colour schemes.
+  This is sufficient for coordinate-based region selection, but city lookup
+  and automatic city boundaries are unavailable.
+
+``--skip-colors``
+  Do not fetch the Dictionary of Colour Combinations library. Although these
+  schemes are conceptually optional, the current loader opens
+  ``docc_colors.json`` unconditionally; colour listing and rendering fail
+  when it is absent.
+
+``--non-interactive``
+  Continue without prompts and skip optional colours during full setup.
+
+``--output DIR``
+  Write generated files to this directory. It takes precedence over
+  ``MAPOC_DATA_DIR``; otherwise the configured data directory defaults to
+  ``~/.mapoc``.
+
+The Docker image invokes tiny, non-interactive setup with ``--skip-colors`` by
+default when no prepared data is available. ``NO_TINY=true`` selects the full
+geographic setup but still skips colours. Supply prepared data containing
+``docc_colors.json`` for poster operation and see :doc:`containerization`.
+
+Generated files
+---------------
+
+Full setup produces:
+
+* ``geonames_headers.txt`` and ``cities_geonames_1000.csv`` for city lookup;
+* ``countries.csv`` for country name/code resolution;
+* ``geofabrik_tree.nw``, ``geofabrik_tree.txt``, and
+  ``geofabrik_urls.json`` for region selection and downloads;
+* ``geoBoundariesCGAZ_ADM2.geojson`` for automatic city boundaries;
+* optionally, ``docc_colors.json``.
 
 ``fetch_data_gh_datasets.py`` optionally fetches an alternative world-cities
 CSV and records a commit hash. It is not consulted by the current city

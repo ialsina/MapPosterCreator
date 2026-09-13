@@ -12,7 +12,8 @@ The upstream attribution is retained to make the project's origin clear.
 Changes in this repository should be evaluated from the source and history in
 this checkout; upstream documentation, screenshots, commands, and releases may
 not describe the exact behavior here. In particular, the current source exposes
-the ``mapoc poster``, ``mapoc browse``, and ``mapoc color`` command groups.
+the ``mapoc poster``, ``mapoc browse``, and ``mapoc color`` command groups,
+plus a FastAPI HTTP service described in :doc:`service`.
 
 License
 -------

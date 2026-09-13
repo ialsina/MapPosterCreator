@@ -25,11 +25,25 @@ The tracked configuration file is empty, so built-in defaults apply:
 * ``default_dpi``: ``300``
 * ``keep_shp_files`` and ``keep_geojson_files``: ``false``
 
-The current ``Config.from_dict`` passes YAML values through without converting
-strings to ``pathlib.Path`` objects, while the ``paths`` class uses the ``/``
-operator. Consequently, a YAML ``data_dir`` or ``output_dir`` string can fail
-at import time. Leave those values unset to use the working defaults, or align
-the implementation's path coercion before relying on path overrides.
+YAML strings for ``data_dir`` and ``output_dir`` are converted to
+``pathlib.Path`` values. ``~`` in configured paths is expanded and relative
+paths are resolved when the effective directories are computed. Both
+directories are created during module import.
+
+Environment variables
+---------------------
+
+``MAPOC_DATA_DIR`` and ``MAPOC_OUTPUT_DIR`` override their corresponding YAML
+values and defaults. They are intended for service and container deployments:
+
+.. code-block:: bash
+
+   export MAPOC_DATA_DIR=/srv/mapoc/data
+   export MAPOC_OUTPUT_DIR=/srv/mapoc/output
+
+The Docker image sets them to ``/app/data`` and ``/app/output``. The FastAPI
+service additionally recognizes ``LOG_DIR`` (default ``/app/logs``) and
+``LOG_LEVEL`` (default ``INFO``); see :doc:`service`.
 
 Generated and cached data
 -------------------------
@@ -43,6 +57,8 @@ creation:
 * ``cities_geonames_1000.csv``
 * ``geofabrik_tree.nw``
 * ``geofabrik_urls.json``
+* ``geoBoundariesCGAZ_ADM2.geojson``
+* ``geonames_headers.txt``
 * ``docc_colors.json``
 * ``colors.json``
 
@@ -69,3 +85,11 @@ schemes saved by ``mapoc color add`` are kept there. The runtime also loads
 ``docc_colors.json`` from ``data_dir``; create it with
 ``scripts/fetch_docc_colors.py`` if you want the generated Dictionary of
 Colour Combinations library.
+
+Container paths and volumes
+---------------------------
+
+Container data may be baked into ``/app/data_source`` and copied to the
+effective ``MAPOC_DATA_DIR`` by the entrypoint. Persist data, output, and logs
+with writable volume mounts when results must survive container replacement.
+The complete precedence and validation rules are in :doc:`containerization`.
