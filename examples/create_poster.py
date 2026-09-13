@@ -50,9 +50,7 @@ def load_coordinates_from_json(json_path: Path):
         # MultiPolygon: coordinates is a list of polygons, each with coordinate rings
         # Use the first polygon's exterior ring (first ring in first polygon)
         first_polygon_coords = coordinates_data[0][0]  # First polygon, exterior ring
-        coordinates = [
-            [float(coord[0]), float(coord[1])] for coord in first_polygon_coords
-        ]
+        coordinates = [[float(coord[0]), float(coord[1])] for coord in first_polygon_coords]
     elif geometry_type == "Polygon":
         # Polygon: coordinates is a list of rings, first is exterior
         exterior_coords = coordinates_data[0]
@@ -91,7 +89,10 @@ Examples:
         "--color",
         type=str,
         default="white",
-        help=f"Color scheme name (default: white). Available: {', '.join(get_available_colorschemes())}",
+        help=(
+            f"Color scheme name (default: white). "
+            f"Available: {', '.join(get_available_colorschemes())}"
+        ),
     )
 
     return parser.parse_args()
@@ -130,9 +131,7 @@ def main():
     print(f"Polygon centroid: ({centroid.x:.6f}, {centroid.y:.6f})")
 
     # Download REAL shapefiles from GeoFabrik
-    print(
-        "\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)..."
-    )
+    print("\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)...")
     try:
         shp_dir = find_download_shp_from_point(
             point=centroid_point,
@@ -154,9 +153,7 @@ def main():
 
     # Create output file (based on input shape name and color)
     shape_name = shape_path.stem
-    output_file = (
-        Path(__file__).parent / "output" / f"poster_{shape_name}_{color_name}.png"
-    )
+    output_file = Path(__file__).parent / "output" / f"poster_{shape_name}_{color_name}.png"
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Create the poster

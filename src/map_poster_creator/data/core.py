@@ -73,9 +73,7 @@ def resolve_city(
         candidates = city_df[_search_fun(city_df, city)].copy()
     else:
         countries = get_country_df()
-        country_matches = countries[
-            countries["Name"].apply(str.lower) == country.lower()
-        ]
+        country_matches = countries[countries["Name"].apply(str.lower) == country.lower()]
         if country_matches.shape[0] == 0:
             raise ValueError(f'Country "{country}" not found in database.')
         country_code = country_matches.iloc[0]["Code"]
@@ -115,7 +113,8 @@ def get_geojson_path_from_geoboundaries(
         city: City name
         country: Country name (optional, used if country_code is not provided)
         country_code: Two-letter country code (optional, takes precedence over country)
-        interactive: If True, prompt user when multiple cities match. If False, use highest population.
+        interactive: If True, prompt user when multiple cities match.
+            If False, use highest population.
         interactive_callback: Optional callback function for interactive city selection.
                             Called with DataFrame of candidates, should return selected Series.
 
@@ -194,7 +193,8 @@ def get_geojson_path_from_geoboundaries(
         polygon = _get_city_polygon_from_geoboundaries(city_series)
     except ValueError as e:
         raise ValueError(
-            f'Could not find geoboundary for city "{city_name}" with country code "{resolved_country_code}". '
+            f'Could not find geoboundary for city "{city_name}" '
+            f'with country code "{resolved_country_code}". '
             f"Original error: {str(e)}"
         ) from e
 
@@ -212,9 +212,7 @@ def _extract_shp_url(node: Tree) -> str:
     raise ValueError(f"Couldn't find a satisfying a tag for {node.name}.")
 
 
-def _calculate_point_choose(
-    point: Point, sorted_distances, location_name: str = "point"
-) -> Tree:
+def _calculate_point_choose(point: Point, sorted_distances, location_name: str = "point") -> Tree:
     """
     Calculate which region to choose based on point-in-polygon check.
 
@@ -246,17 +244,16 @@ def find_download_shp_from_point(
         calculate_point: If True, use point-in-polygon check to find region
         interactive: If True, prompt user to choose region (requires interactive_callback)
         location_name: Name of the location for error messages (default: "point")
-        interactive_callback: Optional callback function for interactive region selection.
-                            Called with list of (region_node, distance) tuples, should return selected Tree.
+        interactive_callback: Optional callback function for interactive region
+            selection. Called with list of (region_node, distance) tuples,
+            should return selected Tree.
 
     Returns:
         Path to the extracted SHP directory
     """
     distances = []
     # Get centroids for leaf nodes only (only leaf nodes represent actual regions)
-    for region_node, region_centroid_lst in get_region_centroids(
-        only_leaf=True
-    ).items():
+    for region_node, region_centroid_lst in get_region_centroids(only_leaf=True).items():
         # Defensive check: ensure this is actually a leaf node
         if not region_node.is_leaf():
             continue
@@ -264,8 +261,7 @@ def find_download_shp_from_point(
             # Calculate minimum distance to any centroid of this region
             # (regions can have multiple polygons, so we take the closest one)
             distance = min(
-                point.distance(region_centroid)
-                for region_centroid in region_centroid_lst
+                point.distance(region_centroid) for region_centroid in region_centroid_lst
             )
             distances.append((region_node, distance))
         except ValueError:
@@ -297,9 +293,11 @@ def find_download_shp_from_point(
 
     # Final verification: ensure we selected a leaf node
     if not region_node.is_leaf():
+        node_name = region_node.name if hasattr(region_node, "name") else "unknown"
         raise ValueError(
-            f"Selected region node '{region_node.name if hasattr(region_node, 'name') else 'unknown'}' "
-            f"is not a leaf node. This should not happen as only leaf nodes should be considered."
+            f"Selected region node '{node_name}' "
+            f"is not a leaf node. This should not happen as only leaf nodes "
+            f"should be considered."
         )
     shp_url = _extract_shp_url(region_node)
     return _download_extract_shp(shp_url)

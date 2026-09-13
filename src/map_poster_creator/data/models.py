@@ -27,9 +27,7 @@ class CityDataFrame(BaseModel[DataFrame]):
                 "Could not find city data. "
                 "If running in a container, this feature may be unavailable."
             )
-        return read_csv(
-            paths.cities_geonames_1000, index_col=0, low_memory=False
-        ).fillna("")
+        return read_csv(paths.cities_geonames_1000, index_col=0, low_memory=False).fillna("")
 
 
 class CountryDataFrame(BaseModel[DataFrame]):
@@ -245,9 +243,8 @@ class RegionPolygonsModel:
                 return []
         except Exception as e:
             # If accessing features fails (e.g., newick parsing error), return empty
-            logger.debug(
-                f"Error accessing features for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}"
-            )
+            node_name = node.name if hasattr(node, "name") else "unknown"
+            logger.debug(f"Error accessing features for node '{node_name}': {e}")
             return []
         try:
             return self._parse_polygons(node.polygon)
@@ -255,9 +252,8 @@ class RegionPolygonsModel:
             return []
         except Exception as e:
             # Catch any other errors when accessing polygon (e.g., newick format issues)
-            logger.debug(
-                f"Error parsing polygon for node '{node.name if hasattr(node, 'name') else 'unknown'}': {e}"
-            )
+            node_name = node.name if hasattr(node, "name") else "unknown"
+            logger.debug(f"Error parsing polygon for node '{node_name}': {e}")
             return []
 
     def get(self, node: Tree) -> Sequence[Polygon]:
@@ -278,9 +274,7 @@ class AllRegionPolygonsModel:
         # Access it lazily to avoid circular import issues
         self._regions_tree_singleton = None
 
-    def _get_all_region_polygons_impl(
-        self, only_leaf: bool
-    ) -> Mapping[Tree, Sequence[Polygon]]:
+    def _get_all_region_polygons_impl(self, only_leaf: bool) -> Mapping[Tree, Sequence[Polygon]]:
         """Internal implementation for getting all region polygons."""
         polygons = {}
         try:
@@ -330,9 +324,7 @@ class RegionCentroidsModel:
         self._cached_get = cache(self._get_region_centroids_impl)
         self._all_region_polygons_model = AllRegionPolygonsModel()
 
-    def _get_region_centroids_impl(
-        self, only_leaf: bool
-    ) -> Mapping[Tree, Sequence[Point]]:
+    def _get_region_centroids_impl(self, only_leaf: bool) -> Mapping[Tree, Sequence[Point]]:
         """Internal implementation for getting region centroids."""
         polygons = self._all_region_polygons_model.get(only_leaf)
         centroids = {}

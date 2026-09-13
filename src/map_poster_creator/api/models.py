@@ -24,7 +24,8 @@ class PosterRequest(BaseModel):
             "Path to SHP directory containing OpenStreetMap data (roads, water, greens). "
             "If not provided, will attempt to automatically find and download the appropriate "
             "regional dataset based on the polygon location or city name. "
-            "SHP files contain the map features (roads, rivers, parks) that get rendered inside your polygon boundary."
+            "SHP files contain the map features (roads, rivers, parks) "
+            "that get rendered inside your polygon boundary."
         ),
     )
     city: str | None = Field(

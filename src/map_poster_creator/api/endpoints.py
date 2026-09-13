@@ -86,7 +86,8 @@ def register_endpoints(app):
         The coordinates define the boundary of the area to display. The system will:
         1. Use your polygon coordinates to define the area boundary
         2. Automatically find/download the appropriate regional OpenStreetMap dataset (SHP files)
-        3. Extract roads, water bodies, and green areas from the SHP data that fall within your polygon
+        3. Extract roads, water bodies, and green areas from the SHP data
+           that fall within your polygon
         4. Render them as a beautiful map poster
 
         The coordinates should be provided as [longitude, latitude] pairs.
@@ -133,8 +134,11 @@ def register_endpoints(app):
                     # Return user-friendly error without traceback
                     raise HTTPException(
                         status_code=400,
-                        detail="Could not automatically determine SHP region. Please provide 'shp_path' or 'city' parameter.",
-                    )
+                        detail=(
+                            "Could not automatically determine SHP region. "
+                            "Please provide 'shp_path' or 'city' parameter."
+                        ),
+                    ) from None
 
             # Get color scheme
             try:
@@ -143,8 +147,11 @@ def register_endpoints(app):
                 available = list(get_colorschemes().keys())
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Unknown color scheme '{request.color}'. Available schemes: {', '.join(available)}",
-                )
+                    detail=(
+                        f"Unknown color scheme '{request.color}'. "
+                        f"Available schemes: {', '.join(available)}"
+                    ),
+                ) from None
 
             # Create temporary output file
             output_dir = paths.output_dir
@@ -164,13 +171,11 @@ def register_endpoints(app):
             except Exception as e:
                 raise HTTPException(
                     status_code=500, detail=f"Error creating poster: {str(e)}"
-                )
+                ) from e
 
             # Return the image file
             if not output_file.exists():
-                raise HTTPException(
-                    status_code=500, detail="Poster file was not created"
-                )
+                raise HTTPException(status_code=500, detail="Poster file was not created")
 
             return FileResponse(
                 path=output_file,
@@ -181,7 +186,7 @@ def register_endpoints(app):
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}") from e
 
     @app.post("/poster/simple")
     async def create_poster_simple(request: PosterRequestSimple):
@@ -193,14 +198,12 @@ def register_endpoints(app):
         """
         # Convert to Coordinate objects
         try:
-            coord_objects = [
-                Coordinate(lon=c[0], lat=c[1]) for c in request.coordinates
-            ]
+            coord_objects = [Coordinate(lon=c[0], lat=c[1]) for c in request.coordinates]
         except (IndexError, ValueError, TypeError) as e:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid coordinate format. Expected [[lon, lat], ...]. Error: {str(e)}",
-            )
+            ) from e
 
         # Create PosterRequest from the simple request
         poster_request = PosterRequest(

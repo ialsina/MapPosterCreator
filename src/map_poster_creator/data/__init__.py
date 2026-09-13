@@ -47,7 +47,8 @@ from map_poster_creator.data.utils import (
     is_valid_download_url,
 )
 
-# Import geometry functions directly (no circular import since geometry.py no longer imports from data)
+# Import geometry functions directly (no circular import since geometry.py
+# no longer imports from data)
 from map_poster_creator.geometry import (
     MapGeometry,
     create_geojson_from_points,

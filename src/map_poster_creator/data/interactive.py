@@ -28,12 +28,7 @@ def interactive_resolve_city(df: DataFrame) -> Series:
     """Interactively resolve a city from multiple candidates."""
     choices = {i: row for i, (_, row) in enumerate(df.iterrows(), start=1)}
     print("Choose city:")
-    print(
-        "\t"
-        + "\n\t".join(
-            f"{i}. {format_city_candidate(row)}" for i, row in choices.items()
-        )
-    )
+    print("\t" + "\n\t".join(f"{i}. {format_city_candidate(row)}" for i, row in choices.items()))
     while True:
         user_input = input("\tSelect choice [1] >")
         if user_input == "":
@@ -67,15 +62,11 @@ def browser_get_geojson_path_interactive(city: str, country: str | None = None) 
             + "did not give any results."
         )
     webbrowser.open_new_tab(
-        GEOJSON_URL.format(
-            latitude=city_series["latitude"], longitude=city_series["longitude"]
-        )
+        GEOJSON_URL.format(latitude=city_series["latitude"], longitude=city_series["longitude"])
     )
     with open(filepath, "w+b") as tf:
         filepath = tf.name
-        tf.write(
-            b"# Create the shape in the browser, and paste the JSON object below\n\n\n"
-        )
+        tf.write(b"# Create the shape in the browser, and paste the JSON object below\n\n\n")
         tf.flush()
         _open_text_editor(filepath)
         _remove_hash_trailing_lines(tf)
@@ -105,7 +96,7 @@ def download_shp_interactive(city: str, country: str | None = None) -> Path:
 
 def interactive_region_choose(sorted_distances, num_choices=5) -> Tree:
     """Interactively choose a region from sorted distance candidates."""
-    top_regions = list(zip(*sorted_distances))[0][:num_choices]
+    top_regions = list(zip(*sorted_distances, strict=False))[0][:num_choices]
     choices = {i: region for i, region in enumerate(top_regions, start=1)}
     print("Choose region:")
     print("\t" + "\n\t".join(f"{i}. {node.name}" for i, node in choices.items()))

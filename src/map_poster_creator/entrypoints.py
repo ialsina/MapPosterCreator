@@ -36,7 +36,9 @@ logging.basicConfig(
 
 
 def _to_fwf(df, tablefmt="plain"):
-    content = [[tup[0]] + tup[1] for tup in zip(df.index.tolist(), df.values.tolist())]
+    content = [
+        [tup[0]] + tup[1] for tup in zip(df.index.tolist(), df.values.tolist(), strict=False)
+    ]
     content = tabulate(content, [""] + list(df.columns), tablefmt=tablefmt)
     return content
 
@@ -51,7 +53,8 @@ def _add_poster_subparsers(subparser_group) -> None:
         action="store",
         help=(
             "City to draw. Required if shp_path is not passed and --coordinates-file is not used. "
-            "When using --coordinates-file, city is optional but recommended to automatically find the correct SHP region."
+            "When using --coordinates-file, city is optional but recommended to "
+            "automatically find the correct SHP region."
         ),
         metavar="CITY",
         dest="city",
@@ -255,10 +258,7 @@ def _color_service(
         print(
             _to_fwf(
                 DataFrame.from_dict(
-                    {
-                        name: scheme.to_json()
-                        for name, scheme in get_colorschemes().items()
-                    },
+                    {name: scheme.to_json() for name, scheme in get_colorschemes().items()},
                     orient="index",
                 ).sort_index(inplace=False),
                 tablefmt="fancy_grid",
@@ -301,13 +301,11 @@ def _size_to_inches(size_units: str) -> float:
         return float(size)
     if size_units.endswith("px"):
         raise NotImplementedError(
-            "px unit not yet implemented. "
-            "Please, pass size in cm or in, and pass argument dpi."
+            "px unit not yet implemented. Please, pass size in cm or in, and pass argument dpi."
         )
     else:
         raise ValueError(
-            f"Unknown unit type in {size_units}. "
-            "The supported units are 'cm', 'in', and 'px'."
+            f"Unknown unit type in {size_units}. The supported units are 'cm', 'in', and 'px'."
         )
 
 
@@ -342,8 +340,7 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
     if coordinates_file is not None:
         if geojson_path is not None:
             raise ValueError(
-                "Cannot specify both --geojson-path and --coordinates-file. "
-                "Please use only one."
+                "Cannot specify both --geojson-path and --coordinates-file. Please use only one."
             )
         try:
             coordinates = read_coordinates_from_file(coordinates_file)
@@ -351,23 +348,17 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             polygon_from_coords = polygon_from_coordinates(coordinates)
             # Optionally save to file if output_prefix is provided (for debugging/inspection)
             if output_prefix:
-                geojson_path = create_geojson_from_points(
-                    coordinates, name=output_prefix
-                )
+                geojson_path = create_geojson_from_points(coordinates, name=output_prefix)
             else:
                 # Use polygon object directly
                 geojson_path = polygon_from_coords
         except Exception as e:
-            raise ValueError(
-                f"Error reading coordinates from file {coordinates_file}: {e}"
-            ) from e
+            raise ValueError(f"Error reading coordinates from file {coordinates_file}: {e}") from e
 
     # Determine geojson_path if not set
     if geojson_path is None:
         if city_name is None:
-            raise ValueError(
-                "Either CITY, --geojson-path, or --coordinates-file must be provided."
-            )
+            raise ValueError("Either CITY, --geojson-path, or --coordinates-file must be provided.")
         # Pass interactive callback if interactive mode is requested
         interactive_callback = None
         if interactive:
@@ -419,7 +410,6 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
     for cscheme_name in colors:
         fname = f"{output_prefix}_{cscheme_name}.png"
         fpath = paths.output_dir / fname
-        args.output_prefix
         try:
             create_poster(
                 shp_dir=Path(shp_path),
@@ -449,9 +439,7 @@ _AVAILABLE_SERVICES = {
 
 def get_parser() -> tuple[ArgumentParser, Mapping[str, Callable]]:
     parser = ArgumentParser(prog="mapoc", description="Map Poster Creator")
-    parser.add_argument(
-        "-v", "--version", action="version", version="%(prog)s " + str(__version__)
-    )
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s " + str(__version__))
     subparsers = parser.add_subparsers(
         title="Available Map Poster services",
         description="Services that Map Poster provides.",

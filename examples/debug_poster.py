@@ -88,9 +88,7 @@ def load_coordinates_from_json(json_path: Path):
         # MultiPolygon: coordinates is a list of polygons, each with coordinate rings
         # Use the first polygon's exterior ring (first ring in first polygon)
         first_polygon_coords = coordinates_data[0][0]  # First polygon, exterior ring
-        coordinates = [
-            [float(coord[0]), float(coord[1])] for coord in first_polygon_coords
-        ]
+        coordinates = [[float(coord[0]), float(coord[1])] for coord in first_polygon_coords]
     elif geometry_type == "Polygon":
         # Polygon: coordinates is a list of rings, first is exterior
         exterior_coords = coordinates_data[0]
@@ -317,9 +315,7 @@ def plot_boundary_at_zoom_level(
 
                 # Use spatial indexing for better performance
                 try:
-                    world_clipped = world_gdf.cx[
-                        clip_left:clip_right, clip_bottom:clip_top
-                    ]
+                    world_clipped = world_gdf.cx[clip_left:clip_right, clip_bottom:clip_top]
                     if not world_clipped.empty:
                         # Plot clipped version
                         world_clipped.plot(
@@ -373,7 +369,7 @@ def plot_boundary_at_zoom_level(
     if show_grid:
         # Calculate appropriate grid spacing based on zoom level
         lon_range = right - left
-        lat_range = top - bottom
+        top - bottom
 
         if lon_range > 100:  # World view
             lon_step, lat_step = 30, 30
@@ -389,9 +385,7 @@ def plot_boundary_at_zoom_level(
         lat = lat_start
         while lat <= top:
             if bottom <= lat <= top:
-                ax.axhline(
-                    y=lat, color="lightgray", linestyle="--", linewidth=0.3, alpha=0.5
-                )
+                ax.axhline(y=lat, color="lightgray", linestyle="--", linewidth=0.3, alpha=0.5)
             lat += lat_step
 
         # Draw longitude lines (handle float steps properly)
@@ -399,9 +393,7 @@ def plot_boundary_at_zoom_level(
         lon = lon_start
         while lon <= right:
             if left <= lon <= right:
-                ax.axvline(
-                    x=lon, color="lightgray", linestyle="--", linewidth=0.3, alpha=0.5
-                )
+                ax.axvline(x=lon, color="lightgray", linestyle="--", linewidth=0.3, alpha=0.5)
             lon += lon_step
 
         # Draw equator and prime meridian more prominently if visible
@@ -421,11 +413,7 @@ def plot_boundary_at_zoom_level(
     if polygon_intersects:
         # Plot the polygon - it will be clipped to view bounds automatically
         # Use thicker line for better visibility
-        linewidth = (
-            3.0
-            if "Regional" in title or "Local" in title or "Boundary" in title
-            else 2.5
-        )
+        linewidth = 3.0 if "Regional" in title or "Local" in title or "Boundary" in title else 2.5
         gdf_polygon.plot(
             ax=ax,
             color="red",
@@ -439,9 +427,7 @@ def plot_boundary_at_zoom_level(
         try:
             intersection = polygon.intersection(view_box)
             if not intersection.is_empty:
-                gdf_intersection = GeoDataFrame(
-                    [1], geometry=[intersection], crs="EPSG:4326"
-                )
+                gdf_intersection = GeoDataFrame([1], geometry=[intersection], crs="EPSG:4326")
                 gdf_intersection.plot(
                     ax=ax,
                     color="red",
@@ -648,9 +634,7 @@ def plot_geometry_on_world_map(geometry, bounds, ax):
     world_clipped = world.clip(view_box)
 
     # Plot world map first
-    world_clipped.plot(
-        ax=ax, color="lightblue", edgecolor="darkblue", alpha=0.5, zorder=1
-    )
+    world_clipped.plot(ax=ax, color="lightblue", edgecolor="darkblue", alpha=0.5, zorder=1)
 
     # Convert input geometry to GeoDataFrame
     if isinstance(geometry, Polygon):
@@ -661,9 +645,7 @@ def plot_geometry_on_world_map(geometry, bounds, ax):
         raise ValueError("geometry must be Polygon or MultiPolygon")
 
     # Plot the polygons
-    gdf_geom.plot(
-        ax=ax, color="red", edgecolor="darkred", linewidth=2.5, alpha=0.8, zorder=5
-    )
+    gdf_geom.plot(ax=ax, color="red", edgecolor="darkred", linewidth=2.5, alpha=0.8, zorder=5)
 
     # Plot centroids
     for poly in geometry.geoms if isinstance(geometry, MultiPolygon) else [geometry]:
@@ -681,9 +663,7 @@ def plot_geometry_on_world_map(geometry, bounds, ax):
     # Set bounds
     ax.set_xlim(left, right)
     ax.set_ylim(bottom, top)
-    ax.set_aspect(
-        1.0 / max(0.01, (abs(top - bottom) / abs(right - left)))
-    )  # adjust aspect
+    ax.set_aspect(1.0 / max(0.01, (abs(top - bottom) / abs(right - left))))  # adjust aspect
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
     ax.set_title("Multipolygon superimposed on world map")
@@ -698,7 +678,7 @@ def plot_geometry_zoom_levels(geometry, output_path: Path, dpi: int = 150):
     ]
 
     fig, axes = plt.subplots(1, len(zoom_bounds), figsize=(20, 6))
-    for ax, b in zip(axes, zoom_bounds):
+    for ax, b in zip(axes, zoom_bounds, strict=False):
         plot_geometry_on_world_map(geometry, b, ax)
 
     plt.tight_layout()
@@ -835,9 +815,7 @@ def plot_raw_data(
 
     # Load raw data
     try:
-        raw_roads = GeoDataFrame.from_file(
-            shp_dir / shp_filename.roads, encoding="utf-8"
-        )
+        raw_roads = GeoDataFrame.from_file(shp_dir / shp_filename.roads, encoding="utf-8")
         # Clip to approximate bounds (for performance)
         bounds = polygon.bounds
         buffer = 0.1  # Small buffer
@@ -858,9 +836,7 @@ def plot_raw_data(
         print(f"  ⚠ Could not visualize raw roads: {e}")
 
     try:
-        raw_water = GeoDataFrame.from_file(
-            shp_dir / shp_filename.water, encoding="utf-8"
-        )
+        raw_water = GeoDataFrame.from_file(shp_dir / shp_filename.water, encoding="utf-8")
         bounds = polygon.bounds
         buffer = 0.1
         raw_water_clipped = raw_water.cx[
@@ -880,9 +856,7 @@ def plot_raw_data(
         print(f"  ⚠ Could not visualize raw water: {e}")
 
     try:
-        raw_greens = GeoDataFrame.from_file(
-            shp_dir / shp_filename.greens, encoding="utf-8"
-        )
+        raw_greens = GeoDataFrame.from_file(shp_dir / shp_filename.greens, encoding="utf-8")
         bounds = polygon.bounds
         buffer = 0.1
         raw_greens_clipped = raw_greens.cx[
@@ -905,7 +879,9 @@ def plot_raw_data(
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Create a map poster with debug visualizations from a shape file (JSON geometry)",
+        description=(
+            "Create a map poster with debug visualizations from a shape file (JSON geometry)"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -926,7 +902,10 @@ Examples:
         "--color",
         type=str,
         default="white",
-        help=f"Color scheme name (default: white). Available: {', '.join(get_available_colorschemes())}",
+        help=(
+            f"Color scheme name (default: white). "
+            f"Available: {', '.join(get_available_colorschemes())}"
+        ),
     )
 
     parser.add_argument(
@@ -972,13 +951,12 @@ def main():
     centroid_point = Point(centroid.x, centroid.y)
     print(f"Polygon centroid: ({centroid.x:.6f}, {centroid.y:.6f})")
     print(
-        f"Polygon bounds: [{geometry.left:.6f}, {geometry.bottom:.6f}, {geometry.right:.6f}, {geometry.top:.6f}]"
+        f"Polygon bounds: [{geometry.left:.6f}, {geometry.bottom:.6f}, "
+        f"{geometry.right:.6f}, {geometry.top:.6f}]"
     )
 
     # Download REAL shapefiles from GeoFabrik
-    print(
-        "\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)..."
-    )
+    print("\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)...")
     try:
         shp_dir = find_download_shp_from_point(
             point=centroid_point,
@@ -1015,9 +993,7 @@ def main():
     # 1. Boundary on world map
     print("\n1. Creating boundary on world map visualization...")
     try:
-        plot_boundary_on_world_map(
-            polygon, debug_dir / "debug_boundary_world_map.png", dpi=150
-        )
+        plot_boundary_on_world_map(polygon, debug_dir / "debug_boundary_world_map.png", dpi=150)
     except Exception as e:
         print(f"  ✗ Error creating world map visualization: {e}")
         import traceback

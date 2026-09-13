@@ -4,7 +4,6 @@ FastAPI application for creating map posters from polygon coordinates.
 
 import logging
 import os
-import time
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -94,16 +93,13 @@ async def startup_event():
                 elif file_path == paths.geofabrik_tree_nw:
                     # Check if file is suspiciously small (might be corrupted)
                     file_size = file_path.stat().st_size
-                    if (
-                        file_size < 50000
-                    ):  # Less than 50KB is suspicious (should be ~4MB)
+                    if file_size < 50000:  # Less than 50KB is suspicious (should be ~4MB)
                         logger.warning(
-                            f"geofabrik_tree.nw is suspiciously small ({file_size} bytes). Expected ~4MB."
+                            f"geofabrik_tree.nw is suspiciously small "
+                            f"({file_size} bytes). Expected ~4MB."
                         )
                         all_ready = False
-                        missing_files.append(
-                            f"{file_path} (too small: {file_size} bytes)"
-                        )
+                        missing_files.append(f"{file_path} (too small: {file_size} bytes)")
 
             if all_ready:
                 # Additional check: try to load the regions tree to ensure it's valid
@@ -113,15 +109,12 @@ async def startup_event():
 
                     tree = get_regions_tree()
                     node_count = len(list(tree.traverse()))
-                    logger.info(
-                        f"✓ Successfully loaded regions tree with {node_count} nodes"
-                    )
+                    logger.info(f"✓ Successfully loaded regions tree with {node_count} nodes")
                     logger.info("✓ API startup complete - ready to accept requests")
                     return
                 except Exception as e:
-                    logger.warning(
-                        f"Regions tree validation failed (attempt {int(waited / check_interval) + 1}): {e}"
-                    )
+                    attempt = int(waited / check_interval) + 1
+                    logger.warning(f"Regions tree validation failed (attempt {attempt}): {e}")
                     # Clear the cache so it can retry
                     from map_poster_creator.data.models import _regions_tree
 
@@ -130,15 +123,15 @@ async def startup_event():
 
             if not all_ready:
                 if waited == 0:
-                    logger.info(
-                        f"Waiting for data files to be ready: {', '.join(missing_files) if missing_files else 'validating...'}"
-                    )
+                    status = ", ".join(missing_files) if missing_files else "validating..."
+                    logger.info(f"Waiting for data files to be ready: {status}")
                 await asyncio.sleep(check_interval)
                 waited += check_interval
 
         # If we get here, we've waited too long
+        invalid = ", ".join(missing_files) if missing_files else "validation failed"
         logger.error(
-            f"Timeout waiting for data files after {max_wait}s. Missing or invalid: {', '.join(missing_files) if missing_files else 'validation failed'}"
+            f"Timeout waiting for data files after {max_wait}s. Missing or invalid: {invalid}"
         )
         logger.error(
             "API started but may not function correctly. Check /health endpoint for status."

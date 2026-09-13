@@ -132,7 +132,7 @@ class AlgoFactory:
         def algorithm(lst: list):
             lst = lst.copy()
             filtered = {}
-            for key, fun in zip(keys, funs):
+            for key, fun in zip(keys, funs, strict=False):
                 if verbose:
                     print(f"\t\tApplying {fun.__name__} -> {key}")
                 element = fun(lst)
@@ -145,7 +145,7 @@ class AlgoFactory:
     def _generate_permutations(self):
         collection = self._collection
         for permutation in permutations(collection.items()):
-            keys, funs = list(zip(*permutation))
+            keys, funs = list(zip(*permutation, strict=False))
             yield self._wrapper(keys, funs, self.verbose)
 
     def __iter__(self):

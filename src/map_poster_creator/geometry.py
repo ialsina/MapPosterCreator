@@ -65,9 +65,7 @@ def _polygon_to_geojson_file(geometry: Polygon | MultiPolygon, filepath: Path) -
                 if len(coord) >= 2:
                     return [float(coord[0]), float(coord[1])]
             # If it's already a float or single value, that's an error
-            raise ValueError(
-                f"Unexpected coordinate format: {coord} (type: {type(coord)})"
-            )
+            raise ValueError(f"Unexpected coordinate format: {coord} (type: {type(coord)})")
         except (TypeError, IndexError, ValueError) as e:
             raise ValueError(f"Error converting coordinate {coord}: {e}") from e
 
@@ -167,13 +165,12 @@ def polygon_from_coordinates(coordinates: Sequence[Sequence[float]]) -> Polygon:
         Polygon object.
 
     Example:
-        >>> coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
+        >>> coords = [[-74.006, 40.7128], \
+[-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
         >>> polygon = polygon_from_coordinates(coords)
     """
     if len(coordinates) < 3:
-        raise ValueError(
-            f"A polygon requires at least 3 points, but got {len(coordinates)}."
-        )
+        raise ValueError(f"A polygon requires at least 3 points, but got {len(coordinates)}.")
 
     # Convert coordinates to list of [lon, lat] pairs
     coord_list = []
@@ -212,7 +209,8 @@ def create_geojson_from_points(
         Path to the created GeoJSON file.
 
     Example:
-        >>> coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
+        >>> coords = [[-74.006, 40.7128], \
+[-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
         >>> geojson_path = create_geojson_from_points(coords, name="custom_polygon")
     """
     # Create polygon from coordinates
@@ -250,9 +248,7 @@ def get_polygon_from_geojson(geojson_path: str) -> Polygon | MultiPolygon:
 
     first_feature, *_ = features
     if not first_feature.get("type") == "Feature":
-        raise ValueError(
-            f"Invalid feature type {first_feature.get('type')}. Expected 'Feature'"
-        )
+        raise ValueError(f"Invalid feature type {first_feature.get('type')}. Expected 'Feature'")
 
     geometry: dict = first_feature.get("geometry")
     geometry_type = geometry.get("type")
@@ -289,7 +285,5 @@ def get_map_geometry_from_poly(poly: Polygon | MultiPolygon) -> MapGeometry:
     left = min(x1, x2)
     right = max(x1, x2)
     center = [(top + bottom) / 2, (left + right) / 2]
-    geometry = MapGeometry(
-        top=top, bottom=bottom, left=left, right=right, center=center
-    )
+    geometry = MapGeometry(top=top, bottom=bottom, left=left, right=right, center=center)
     return geometry

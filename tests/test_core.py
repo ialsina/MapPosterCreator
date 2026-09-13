@@ -20,9 +20,7 @@ class TestGetBoundaryShape:
 
     def test_get_boundary_shape_from_polygon(self, sample_polygon):
         """Test getting boundary shape from Polygon object."""
-        with patch(
-            "map_poster_creator.core.get_map_geometry_from_poly"
-        ) as mock_get_geometry:
+        with patch("map_poster_creator.core.get_map_geometry_from_poly") as mock_get_geometry:
             mock_geometry = MagicMock()
             mock_get_geometry.return_value = mock_geometry
             poly, geometry = _get_boundary_shape(sample_polygon)
@@ -38,9 +36,7 @@ class TestGetBoundaryShape:
                 Polygon([(2, 2), (3, 2), (3, 3), (2, 3)]),
             ]
         )
-        with patch(
-            "map_poster_creator.core.get_map_geometry_from_poly"
-        ) as mock_get_geometry:
+        with patch("map_poster_creator.core.get_map_geometry_from_poly") as mock_get_geometry:
             mock_geometry = MagicMock()
             mock_get_geometry.return_value = mock_geometry
             poly, geometry = _get_boundary_shape(multipolygon)
@@ -54,9 +50,7 @@ class TestGetBoundaryShape:
             "map_poster_creator.core.get_polygon_from_geojson",
             return_value=sample_polygon,
         ):
-            with patch(
-                "map_poster_creator.core.get_map_geometry_from_poly"
-            ) as mock_get_geometry:
+            with patch("map_poster_creator.core.get_map_geometry_from_poly") as mock_get_geometry:
                 mock_geometry = MagicMock()
                 mock_get_geometry.return_value = mock_geometry
                 poly, geometry = _get_boundary_shape(str(geojson_path))
@@ -70,9 +64,7 @@ class TestGetBoundaryShape:
             "map_poster_creator.core.get_polygon_from_geojson",
             return_value=sample_polygon,
         ):
-            with patch(
-                "map_poster_creator.core.get_map_geometry_from_poly"
-            ) as mock_get_geometry:
+            with patch("map_poster_creator.core.get_map_geometry_from_poly") as mock_get_geometry:
                 mock_geometry = MagicMock()
                 mock_get_geometry.return_value = mock_geometry
                 poly, geometry = _get_boundary_shape(geojson_path)
@@ -149,10 +141,7 @@ class TestPreprocessingRoads:
         assert "footway" not in result["fclass"].values
         assert "steps" not in result["fclass"].values
         # Should contain primary and secondary
-        assert (
-            "primary" in result["fclass"].values
-            or "secondary" in result["fclass"].values
-        )
+        assert "primary" in result["fclass"].values or "secondary" in result["fclass"].values
 
     def test_preprocessing_roads_adds_speeds(self, sample_polygon):
         """Test that preprocessing_roads adds speeds column."""
@@ -206,9 +195,7 @@ class TestCreatePoster:
             mock_geometry = MagicMock()
             mock_get_shape.return_value = (sample_polygon, mock_geometry)
 
-            with patch(
-                "map_poster_creator.core.GeoDataFrame.from_file"
-            ) as mock_from_file:
+            with patch("map_poster_creator.core.GeoDataFrame.from_file") as mock_from_file:
                 mock_gdf = MagicMock()
                 mock_from_file.return_value = mock_gdf
 
@@ -216,12 +203,8 @@ class TestCreatePoster:
                     "map_poster_creator.core._preprocessing_roads",
                     return_value=mock_gdf,
                 ):
-                    with patch(
-                        "map_poster_creator.core._preprocessing", return_value=mock_gdf
-                    ):
-                        with patch(
-                            "map_poster_creator.core.plot_and_save"
-                        ) as mock_plot:
+                    with patch("map_poster_creator.core._preprocessing", return_value=mock_gdf):
+                        with patch("map_poster_creator.core.plot_and_save") as mock_plot:
                             create_poster(
                                 shp_dir=mock_shp_dir,
                                 geojson_path=sample_polygon,
@@ -250,9 +233,7 @@ class TestCreatePoster:
             mock_geometry = MagicMock()
             mock_get_shape.return_value = (sample_polygon, mock_geometry)
 
-            with patch(
-                "map_poster_creator.core.GeoDataFrame.from_file"
-            ) as mock_from_file:
+            with patch("map_poster_creator.core.GeoDataFrame.from_file") as mock_from_file:
                 mock_gdf = MagicMock()
                 mock_from_file.return_value = mock_gdf
 
@@ -260,12 +241,8 @@ class TestCreatePoster:
                     "map_poster_creator.core._preprocessing_roads",
                     return_value=mock_gdf,
                 ):
-                    with patch(
-                        "map_poster_creator.core._preprocessing", return_value=mock_gdf
-                    ):
-                        with patch(
-                            "map_poster_creator.core.plot_and_save"
-                        ) as mock_plot:
+                    with patch("map_poster_creator.core._preprocessing", return_value=mock_gdf):
+                        with patch("map_poster_creator.core.plot_and_save") as mock_plot:
                             create_poster(
                                 shp_dir=mock_shp_dir,
                                 geojson_path=geojson_path,
@@ -287,9 +264,7 @@ class TestCreatePoster:
                 mock_geometry = MagicMock()
                 mock_get_shape.return_value = (sample_polygon, mock_geometry)
 
-                with patch(
-                    "map_poster_creator.core.GeoDataFrame.from_file"
-                ) as mock_from_file:
+                with patch("map_poster_creator.core.GeoDataFrame.from_file") as mock_from_file:
                     mock_gdf = MagicMock()
                     mock_from_file.return_value = mock_gdf
 
@@ -301,9 +276,7 @@ class TestCreatePoster:
                             "map_poster_creator.core._preprocessing",
                             return_value=mock_gdf,
                         ):
-                            with patch(
-                                "map_poster_creator.core.plot_and_save"
-                            ) as mock_plot:
+                            with patch("map_poster_creator.core.plot_and_save") as mock_plot:
                                 create_poster(
                                     shp_dir=mock_shp_dir,
                                     geojson_path=sample_polygon,
@@ -326,9 +299,7 @@ class TestCreatePoster:
                 mock_geometry = MagicMock()
                 mock_get_shape.return_value = (sample_polygon, mock_geometry)
 
-                with patch(
-                    "map_poster_creator.core.GeoDataFrame.from_file"
-                ) as mock_from_file:
+                with patch("map_poster_creator.core.GeoDataFrame.from_file") as mock_from_file:
                     mock_gdf = MagicMock()
                     mock_from_file.return_value = mock_gdf
 
@@ -340,9 +311,7 @@ class TestCreatePoster:
                             "map_poster_creator.core._preprocessing",
                             return_value=mock_gdf,
                         ):
-                            with patch(
-                                "map_poster_creator.core.plot_and_save"
-                            ) as mock_plot:
+                            with patch("map_poster_creator.core.plot_and_save") as mock_plot:
                                 create_poster(
                                     shp_dir=mock_shp_dir,
                                     geojson_path=sample_polygon,
@@ -364,9 +333,7 @@ class TestCreatePoster:
             mock_geometry = MagicMock()
             mock_get_shape.return_value = (sample_polygon, mock_geometry)
 
-            with patch(
-                "map_poster_creator.core.GeoDataFrame.from_file"
-            ) as mock_from_file:
+            with patch("map_poster_creator.core.GeoDataFrame.from_file") as mock_from_file:
                 mock_gdf = MagicMock()
                 mock_from_file.return_value = mock_gdf
 
@@ -374,9 +341,7 @@ class TestCreatePoster:
                     "map_poster_creator.core._preprocessing_roads",
                     return_value=mock_gdf,
                 ):
-                    with patch(
-                        "map_poster_creator.core._preprocessing", return_value=mock_gdf
-                    ):
+                    with patch("map_poster_creator.core._preprocessing", return_value=mock_gdf):
                         with patch("map_poster_creator.core.plot_and_save"):
                             create_poster(
                                 shp_dir=mock_shp_dir,
@@ -389,25 +354,12 @@ class TestCreatePoster:
                             # Should load roads, water, and greens shapefiles
                             assert mock_from_file.call_count == 3
                             # Check that all three shapefile types were loaded
-                            call_paths = [
-                                str(call[0][0])
-                                for call in mock_from_file.call_args_list
-                            ]
-                            roads_found = any(
-                                "gis_osm_roads" in path for path in call_paths
-                            )
-                            water_found = any(
-                                "gis_osm_water" in path for path in call_paths
-                            )
-                            greens_found = any(
-                                "gis_osm_pois" in path for path in call_paths
-                            )
-                            assert roads_found, (
-                                f"Roads shapefile not found in calls: {call_paths}"
-                            )
-                            assert water_found, (
-                                f"Water shapefile not found in calls: {call_paths}"
-                            )
+                            call_paths = [str(call[0][0]) for call in mock_from_file.call_args_list]
+                            roads_found = any("gis_osm_roads" in path for path in call_paths)
+                            water_found = any("gis_osm_water" in path for path in call_paths)
+                            greens_found = any("gis_osm_pois" in path for path in call_paths)
+                            assert roads_found, f"Roads shapefile not found in calls: {call_paths}"
+                            assert water_found, f"Water shapefile not found in calls: {call_paths}"
                             assert greens_found, (
                                 f"Greens shapefile not found in calls: {call_paths}"
                             )
@@ -422,9 +374,7 @@ class TestCreatePosterFromCoordinates:
         """Test creating poster from coordinates successfully."""
         output_file = temp_dir / "poster.png"
 
-        with patch(
-            "map_poster_creator.core.polygon_from_coordinates"
-        ) as mock_polygon_from_coords:
+        with patch("map_poster_creator.core.polygon_from_coordinates") as mock_polygon_from_coords:
             sample_polygon = Polygon([(c[0], c[1]) for c in sample_coordinates])
             mock_polygon_from_coords.return_value = sample_polygon
 
@@ -449,18 +399,12 @@ class TestCreatePosterFromCoordinates:
         output_file = temp_dir / "poster.png"
         geojson_output = temp_dir / "output.geojson"
 
-        with patch(
-            "map_poster_creator.core.polygon_from_coordinates"
-        ) as mock_polygon_from_coords:
+        with patch("map_poster_creator.core.polygon_from_coordinates") as mock_polygon_from_coords:
             sample_polygon = Polygon([(c[0], c[1]) for c in sample_coordinates])
             mock_polygon_from_coords.return_value = sample_polygon
 
-            with patch(
-                "map_poster_creator.core._polygon_to_geojson_file"
-            ) as mock_save_geojson:
-                with patch(
-                    "map_poster_creator.core.create_poster"
-                ) as mock_create_poster:
+            with patch("map_poster_creator.core._polygon_to_geojson_file") as mock_save_geojson:
+                with patch("map_poster_creator.core.create_poster") as mock_create_poster:
                     create_poster_from_coordinates(
                         shp_dir=mock_shp_dir,
                         coordinates=sample_coordinates,
@@ -470,9 +414,7 @@ class TestCreatePosterFromCoordinates:
                         output=output_file,
                         geojson_output_path=geojson_output,
                     )
-                    mock_save_geojson.assert_called_once_with(
-                        sample_polygon, geojson_output
-                    )
+                    mock_save_geojson.assert_called_once_with(sample_polygon, geojson_output)
                     mock_create_poster.assert_called_once()
                     call_args = mock_create_poster.call_args
                     # Should pass geojson path, not polygon
@@ -496,9 +438,7 @@ class TestCreatePosterFromCoordinates:
                 sample_polygon = Polygon([(c[0], c[1]) for c in coords])
                 mock_polygon_from_coords.return_value = sample_polygon
 
-                with patch(
-                    "map_poster_creator.core.create_poster"
-                ) as mock_create_poster:
+                with patch("map_poster_creator.core.create_poster") as mock_create_poster:
                     create_poster_from_coordinates(
                         shp_dir=mock_shp_dir,
                         coordinates=coords,
@@ -517,9 +457,7 @@ class TestCreatePosterFromCoordinates:
         coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589]]
         output_file = temp_dir / "poster.png"
 
-        with patch(
-            "map_poster_creator.core.polygon_from_coordinates"
-        ) as mock_polygon_from_coords:
+        with patch("map_poster_creator.core.polygon_from_coordinates") as mock_polygon_from_coords:
             # polygon_from_coordinates should handle closing
             sample_polygon = Polygon(
                 [
@@ -531,7 +469,7 @@ class TestCreatePosterFromCoordinates:
             )
             mock_polygon_from_coords.return_value = sample_polygon
 
-            with patch("map_poster_creator.core.create_poster") as mock_create_poster:
+            with patch("map_poster_creator.core.create_poster"):
                 create_poster_from_coordinates(
                     shp_dir=mock_shp_dir,
                     coordinates=coords,
@@ -547,9 +485,7 @@ class TestCreatePosterFromCoordinates:
 class TestPosterEquivalentToBashScript:
     """Test equivalent to test_poster.sh - tests the Python API directly."""
 
-    def test_poster_equivalent_to_bash_script(
-        self, mock_shp_dir, mock_colorscheme, temp_dir
-    ):
+    def test_poster_equivalent_to_bash_script(self, mock_shp_dir, mock_colorscheme, temp_dir):
         """
         Test equivalent to test_poster.sh that calls the Python API directly.
 
@@ -573,9 +509,7 @@ class TestPosterEquivalentToBashScript:
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Call create_poster_from_coordinates directly (equivalent to POST /poster/simple)
-        with patch(
-            "map_poster_creator.core.polygon_from_coordinates"
-        ) as mock_polygon_from_coords:
+        with patch("map_poster_creator.core.polygon_from_coordinates") as mock_polygon_from_coords:
             from shapely.geometry import Polygon
 
             sample_polygon = Polygon(
@@ -674,17 +608,13 @@ class TestPosterEquivalentToBashScript:
                 )
                 mock_polygon_from_coords.return_value = sample_polygon
 
-                with patch(
-                    "map_poster_creator.core.create_poster"
-                ) as mock_create_poster:
+                with patch("map_poster_creator.core.create_poster") as mock_create_poster:
                     # Create a side effect that simulates file creation
                     def mock_create_side_effect(*args, **kwargs):
                         output_path = kwargs.get("output")
                         if output_path:
                             # Create a dummy PNG file to simulate the actual file creation
-                            output_path.write_bytes(
-                                b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
-                            )
+                            output_path.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
 
                     mock_create_poster.side_effect = mock_create_side_effect
 

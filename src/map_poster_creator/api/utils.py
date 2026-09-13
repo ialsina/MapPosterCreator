@@ -44,15 +44,17 @@ def find_shp_from_latitude_longitude(latitude: float, longitude: float) -> Path:
     except (ValueError, NotImplementedError) as e:
         error_msg = str(e)
         full_traceback = traceback.format_exc()
-        logger.error(
-            f"Error finding SHP from lat/lon ({latitude}, {longitude}): {error_msg}"
-        )
+        logger.error(f"Error finding SHP from lat/lon ({latitude}, {longitude}): {error_msg}")
         logger.debug(f"Full traceback:\n{full_traceback}")
         # Return user-friendly error without traceback
         raise HTTPException(
             status_code=400,
-            detail=f"Could not automatically determine SHP region from coordinates ({latitude}, {longitude}). Please provide 'shp_path' or 'city' parameter.",
-        )
+            detail=(
+                f"Could not automatically determine SHP region from "
+                f"coordinates ({latitude}, {longitude}). "
+                f"Please provide 'shp_path' or 'city' parameter."
+            ),
+        ) from None
     except Exception as e:
         error_msg = str(e)
         full_traceback = traceback.format_exc()
@@ -65,11 +67,14 @@ def find_shp_from_latitude_longitude(latitude: float, longitude: float) -> Path:
             raise HTTPException(
                 status_code=500,
                 detail="Error loading region data. Please contact support or try again later.",
-            )
+            ) from None
         raise HTTPException(
             status_code=500,
-            detail="An unexpected error occurred while finding the region. Please try again or provide 'shp_path' parameter.",
-        )
+            detail=(
+                "An unexpected error occurred while finding the region. "
+                "Please try again or provide 'shp_path' parameter."
+            ),
+        ) from None
 
 
 def find_shp_from_polygon(
@@ -114,9 +119,7 @@ def find_shp_from_polygon(
     # If city is provided, use it to find SHP
     if city:
         try:
-            city_series = resolve_city(
-                city=city, country=country, interactive=False, first=True
-            )
+            city_series = resolve_city(city=city, country=country, interactive=False, first=True)
             if city_series is not None:
                 return find_download_shp(
                     city=city,
@@ -130,8 +133,11 @@ def find_shp_from_polygon(
             if "Country" in error_msg and "not found" in error_msg:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"{error_msg} Please provide a valid country name or use 'shp_path' parameter.",
-                )
+                    detail=(
+                        f"{error_msg} Please provide a valid country name "
+                        f"or use 'shp_path' parameter."
+                    ),
+                ) from e
             # For other ValueErrors (like no regions found), fall through to centroid method
             pass
         except NotImplementedError:
@@ -165,12 +171,15 @@ def find_shp_from_polygon(
             raise HTTPException(
                 status_code=500,
                 detail="Error loading region data. Please contact support or try again later.",
-            )
+            ) from None
         # Fall through to final error
         pass
 
     # If all else fails, raise an error
     raise HTTPException(
         status_code=400,
-        detail="Could not automatically determine SHP region. Please provide 'shp_path' or 'city' parameter.",
+        detail=(
+            "Could not automatically determine SHP region. "
+            "Please provide 'shp_path' or 'city' parameter."
+        ),
     )

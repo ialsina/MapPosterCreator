@@ -51,9 +51,7 @@ def _preprocessing(poly: Polygon | MultiPolygon, gdf: GeoDataFrame) -> GeoDataFr
 
 
 @log_processing
-def _preprocessing_roads(
-    poly: Polygon | MultiPolygon, gdf: GeoDataFrame
-) -> GeoDataFrame:
+def _preprocessing_roads(poly: Polygon | MultiPolygon, gdf: GeoDataFrame) -> GeoDataFrame:
     town = _preprocessing(poly=poly, gdf=gdf)
     town = town[~town.fclass.isin(["footway", "steps"])]
     town["speeds"] = [speed for speed in town["maxspeed"]]
@@ -135,7 +133,10 @@ def create_poster_from_coordinates(
     Example:
         >>> from map_poster_creator.core import create_poster_from_coordinates
         >>> from map_poster_creator.colorscheme import get_colorscheme
-        >>> coords = [[-74.006, 40.7128], [-73.935, 40.7128], [-73.935, 40.7589], [-74.006, 40.7589]]
+        >>> coords = [
+        ...     [-74.006, 40.7128], [-73.935, 40.7128],
+        ...     [-73.935, 40.7589], [-74.006, 40.7589],
+        ... ]
         >>> create_poster_from_coordinates(
         ...     shp_dir=Path("/path/to/shp"),
         ...     coordinates=coords,
