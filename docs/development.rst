@@ -4,9 +4,12 @@ Development
 Repository layout
 -----------------
 
-``map_poster_creator/``
+``src/map_poster_creator/``
   Application package, ``mapoc`` entry point, data layer, geometry helpers,
   and FastAPI service.
+
+``assets/``
+  README and documentation images.
 
 ``scripts/``
   One-off or maintenance scripts that build required local indexes and
