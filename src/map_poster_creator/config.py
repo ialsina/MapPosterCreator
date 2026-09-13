@@ -1,11 +1,21 @@
-from dataclasses import dataclass
-from pathlib import Path
 import os
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+
 import yaml
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 CONFIG_FILE = ROOT_DIR / "config.yaml"
+
+
+def _load_config_dict() -> dict:
+    if not CONFIG_FILE.is_file():
+        return {}
+    with open(CONFIG_FILE, encoding="utf-8") as cf:
+        return yaml.safe_load(cf) or {}
+
+
 # Check for environment variable first (for containerization), then use default
 _DEFAULT_DATA_DIR = Path(os.getenv("MAPOC_DATA_DIR", str(Path.home() / ".mapoc")))
 _DEFAULT_OUTPUT_DIR = Path(os.getenv("MAPOC_OUTPUT_DIR", str(Path.home() / "mapoc")))
@@ -48,8 +58,7 @@ def get_data_dir() -> Path:
         data_dir = Path(env_data_dir).expanduser().resolve()
     else:
         # Then check config file
-        with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
-            _config_dct = yaml.safe_load(cf) or {}
+        _config_dct = _load_config_dict()
 
         if "data_dir" in _config_dct:
             data_dir = Path(_config_dct["data_dir"]).expanduser().resolve()
@@ -71,8 +80,7 @@ def get_output_dir() -> Path:
         output_dir = Path(env_output_dir).expanduser().resolve()
     else:
         # Then check config file
-        with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
-            _config_dct = yaml.safe_load(cf) or {}
+        _config_dct = _load_config_dict()
 
         if "output_dir" in _config_dct:
             output_dir = Path(_config_dct["output_dir"]).expanduser().resolve()
@@ -86,8 +94,7 @@ def get_output_dir() -> Path:
 
 
 # Load config with environment variable support
-with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
-    _config_dct = yaml.safe_load(cf) or {}
+_config_dct = _load_config_dict()
 
 # Environment variables take highest precedence over config file
 # Use get_data_dir() and get_output_dir() to ensure directories are created

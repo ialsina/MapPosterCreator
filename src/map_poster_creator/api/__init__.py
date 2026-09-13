@@ -11,9 +11,10 @@ from fastapi import FastAPI
 
 from map_poster_creator.api.endpoints import register_endpoints
 
-# Configure logging
+# Configure logging (Docker sets LOG_DIR=/app/logs; local default is ~/.mapoc/logs)
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-log_dir = Path(os.getenv("LOG_DIR", "/app/logs"))
+_DEFAULT_LOG_DIR = Path.home() / ".mapoc" / "logs"
+log_dir = Path(os.getenv("LOG_DIR", str(_DEFAULT_LOG_DIR)))
 log_dir.mkdir(parents=True, exist_ok=True)
 
 # Set up file handler for detailed logs
@@ -119,7 +120,7 @@ async def startup_event():
                     return
                 except Exception as e:
                     logger.warning(
-                        f"Regions tree validation failed (attempt {int(waited/check_interval)+1}): {e}"
+                        f"Regions tree validation failed (attempt {int(waited / check_interval) + 1}): {e}"
                     )
                     # Clear the cache so it can retry
                     from map_poster_creator.data.models import _regions_tree
