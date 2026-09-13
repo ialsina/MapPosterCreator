@@ -1,213 +1,129 @@
 # Map Poster Creator
 
-**Map Poster Creator** - script for creating beautiful road maps of any cities, zones, sections according to OSM data.
-You can add green areas, roads, rivers, ponds, lakes to the map.
-There are several ready-made color schemes, but you can easily add your own colors.
+Create minimalist road-map posters from OpenStreetMap data. Map Poster Creator
+combines a GeoJSON boundary with a Geofabrik shapefile extract, then renders
+roads, water, and green-area layers as a PNG with a chosen colour scheme.
 
-The project is provided as-is.
+This repository is a fork of
+[k4m454k/MapPosterCreator](https://github.com/k4m454k/MapPosterCreator). It is
+distributed under the [MIT License](LICENSE).
 
-![main window](https://raw.githubusercontent.com/k4m454k/MapPosterCreator/master/pics/msk_c.png?raw=true)
+![Coral map poster](pics/msk_coral.png)
 
+## Requirements
 
-## Valriable Colors
+Use Python 3.10 or newer. Although older package metadata declared Python 3.7,
+the current source uses Python 3.10 union-type syntax.
 
-### `white`
-![white](https://raw.githubusercontent.com/k4m454k/MapPosterCreator/master/pics/msk_white.png?raw=true)
+The GeoPandas stack may require native geospatial libraries:
 
-### `black`
-![black](https://raw.githubusercontent.com/k4m454k/MapPosterCreator/master/pics/msk_black.png?raw=true)
+- Debian/Ubuntu: `sudo apt-get install libgeos-dev`
+- macOS: `brew install geos`
+- Windows: install compatible GDAL/Fiona wheels if pip cannot install their
+  native dependencies.
 
-### `coral`
-![coral](https://raw.githubusercontent.com/k4m454k/MapPosterCreator/master/pics/msk_coral.png?raw=true)
+## Install
 
-
-## Install:
-
-`pip install map-poster-creator`
-
-### Deps
-
-#### Linux
-- `apt-get install libgeos-dev`
-
-#### Windows
-thanks [Lamroy95](https://github.com/Lamroy95) for Windows instruction
-- Manually download and install two python packages (GDAL and Fiona):
-  - Download [GDAL .whl file](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) for your version of python (Python 3.8 - ...cp38....whl)
-  - Download [Fiona .whl file](https://www.lfd.uci.edu/~gohlke/pythonlibs/#fiona)
-  - Install GDAL: `pip install path\to\gdal.whl`
-  - Install Fiona: `pip install path\to\fiona.whl`
-  - Finally, install map-poster-creator: `pip install map-poster-creator`
-- Or just use Docker =)
-
-#### MacOS
-- `brew install geos`
-
-## Setup
-
-After installing the package, you need to download the required data files. You can do this automatically using the setup script:
-
-### Automated Setup
-
-Run the setup script to download all required data:
+From a checkout:
 
 ```bash
-./scripts/setup.sh
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e .
 ```
 
-Or manually:
+Verify the command-line interface:
 
 ```bash
-bash scripts/setup.sh
+mapoc --version
+mapoc --help
 ```
 
-The setup script will:
-1. Create GeoNames headers file (required for parsing city data)
-2. Download country list data
-3. Download cities data from GeoNames (cities with population > 1000)
-4. Build GeoFabrik region tree (for finding and downloading shapefiles)
-5. Download geoboundaries data (for city boundary polygons)
-6. Optionally download additional color schemes from Dictionary of Color Combinations
+## Create a poster
 
-**Note**: The setup process may take 10-30 minutes depending on your internet connection, as it downloads several large data files.
+The current CLI uses a required city argument. With generated city metadata
+available, it can open geojson.io for boundary creation and automatically
+download the appropriate Geofabrik extract:
 
-### Manual Setup
-
-If you prefer to run the scripts individually, see [scripts/README.md](scripts/README.md) for detailed documentation of each script.
-
-**Required scripts (in order):**
 ```bash
-# 1. Create GeoNames headers
-python scripts/create_geonames_headers.py
+mapoc poster "Moscow, Russia" --colors white black --width 20cm --dpi 300
+```
 
-# 2. Download countries data
+To use already downloaded inputs, supply both paths. The positional city
+argument remains required, but is not resolved when both explicit paths are
+provided:
+
+```bash
+mapoc poster "Berlin, Germany" \
+  --shp-path /data/germany-latest-free \
+  --geojson-path /data/berlin-boundary.geojson \
+  --colors coral \
+  --output-prefix berlin
+```
+
+The shapefile directory must directly contain:
+
+- `gis_osm_roads_free_1.shp`
+- `gis_osm_water_a_free_1.shp`
+- `gis_osm_pois_a_free_1.shp`
+
+The GeoJSON file must contain at least one `Feature` with `Polygon` geometry.
+Only the first feature and its first exterior ring are used. Generated posters
+are written to `~/mapoc` by default.
+
+## Colour schemes
+
+The built-in schemes are `black`, `white`, `red`, and `coral`.
+
+```bash
+mapoc color list
+mapoc color show coral
+mapoc color add coffee \
+  --facecolor "#433633" \
+  --water "#5c5552" \
+  --greens "#8f857d" \
+  --roads "#decbb7"
+```
+
+`browse` commands open the source sites in a browser:
+
+```bash
+mapoc browse shp
+mapoc browse geojson
+```
+
+## City-data setup
+
+City-driven downloads require locally generated country, GeoNames, and
+Geofabrik index data. The maintenance scripts are:
+
+```bash
 python scripts/fetch_countries.py
-
-# 3. Download cities data
 python scripts/fetch_data_geonames.py
-
-# 4. Build region tree (takes several minutes)
 python scripts/build_region_tree.py
+```
 
-# 5. Download geoboundaries (large file, takes several minutes)
-python scripts/fetch_geoboundaries.py
+`fetch_data_geonames.py` additionally needs
+`~/.mapoc/geonames_headers.txt`, which is not included in this repository.
+Until the required local indexes are available, use the explicit-input
+workflow above.
 
-# 6. Optional: Download color schemes
+The extended Dictionary of Colour Combinations palette library is generated
+separately:
+
+```bash
 python scripts/fetch_docc_colors.py
 ```
 
-### Data Storage
+## Documentation
 
-All data files are stored in `~/.mapoc/` by default. You can configure this location in `config.yaml`.
-
-**Required data files:**
-- `countries.csv` - Country codes and names
-- `cities_geonames_1000.csv` - City data with coordinates
-- `geofabrik_tree.nw` - Region hierarchy tree
-- `geofabrik_urls.json` - Region download URLs
-- `geoBoundariesCGAZ_ADM2.geojson` - Administrative boundaries
-
-**Optional data files:**
-- `docc_colors.json` - Additional color schemes
-- `cities_gh_datasets.csv` - Alternative city data source
-
-### Docker Setup
-
-When building the Docker image, the data directory is handled automatically:
-
-**Option 1: Create data on host first (recommended for faster rebuilds)**
-```bash
-# Create data/ directory on host before building
-./scripts/setup.sh --tiny --skip-colors --non-interactive --output data/
-```
-
-**Option 2: Let Docker create it during build**
-```bash
-# Just build - data will be created during build if data/ doesn't exist
-docker build -t map-poster-creator .
-```
-
-**Note**: The `data/` directory is git-ignored. During Docker build:
-- If `data/` exists in the build context, it will be used
-- If `data/` doesn't exist, `setup.sh` will run during the build to create it in the container
-- At runtime, the entrypoint ensures data is available in `/app/data`
-
-## Usage:
-
-1. Create geojson file with one poly. https://geojson.io/
-2. Download shp archive for region https://download.geofabrik.de/ eq: `central-fed-district-latest-free.shp.zip`
-3. Unpack `*.free.shp.zip` archive to some folder `PATH_TO_SHP_DIR`
+The complete Sphinx documentation covers configuration, data sources,
+troubleshooting, architecture, and the programmatic API.
 
 ```bash
-$ mapoc poster create --shp_path PATH_TO_SHP_DIR --geojson PATH_TO_GEOJSON --colors white black coral
+pip install -r docs/requirements.txt
+make -C docs html
 ```
 
-```bash
-$ mapoc poster create -h
-usage: Map Poster Creator poster create [-h] --shp_path SHP_PATH --geojson GEOJSON [--colors COLORS [COLORS ...]] [--output_prefix OUTPUT_PREFIX]
-
-Make Poster
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --shp_path SHP_PATH   Path to shp folder.type "mapoc misc shp" to download
-  --geojson GEOJSON     Path to geojson file with boundary polygon.type "mapoc misc geojson" to create and download
-  --colors COLORS [COLORS ...]
-                        Provide colors. eq "--colors white black coral". Default: "white". Available colors: black, white, red, coral
-  --output_prefix OUTPUT_PREFIX
-                        Output file prefix. eq. "{OUTPUT_PREFIX}_{COLOR}.png". Default: "map"
-```
-
-```bash
-$ mapoc misc -h
-usage: Map Poster Creator misc [-h] {shp,geojson} ...
-
-Misc services
-
-optional arguments:
-  -h, --help     show this help message and exit
-
-misc management commands:
-  misc
-
-  {shp,geojson}  Additional help for available commands
-
-```
-
-### Colors
-
-#### Add new color scheme
-
-Add a new color scheme or rewrite available color scheme.
-
-```bash
-usage: mapoc color add [-h] --name NAME --facecolor FACECOLOR --water WATER --greens GREENS --roads ROADS
-
-List available colors
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --name NAME           Name of color scheme. eq. "blue"
-  --facecolor FACECOLOR
-                        MatPlot face hex color. eq. "#ffffff"
-  --water WATER         MatPlot water hex color. eq. "#ffffff"
-  --greens GREENS       MatPlot greens hex color. eq. "#ffffff"
-  --roads ROADS         MatPlot roads hex color. eq. "#ffffff"
-
-```
-
-Example:
-```bash
-$ mapoc color add --name "coffee" --facecolor "#433633" --water "#5c5552" --greens "#8f857d" --roads "#decbb7"
-```
-
-#### List available color schemes
-
-```bash
-$ mapoc color list
-```
-
-## TODO
-
-- Add configurable settings for poster size and quality.
-- Add Docker image
+Open `docs/_build/html/index.html` after a successful build.
