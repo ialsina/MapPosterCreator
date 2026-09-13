@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
-from pathlib import Path
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+
 import yaml
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -24,10 +25,11 @@ class Config:
         return cls(**dct)
 
 
-with open(CONFIG_FILE, "r", encoding="utf-8") as cf:
+with open(CONFIG_FILE, encoding="utf-8") as cf:
     _config_dct = yaml.safe_load(cf) or {}
 
 config = Config.from_dict(_config_dct)
+
 
 @dataclass(frozen=True)
 class paths:
@@ -46,5 +48,6 @@ class paths:
     geofabrik_tree_txt = data_dir / "geofabrik_tree.txt"
     geofabrik_urls = data_dir / "geofabrik_urls.json"
     shp_path = (data_dir if config.keep_shp_files else _TEMP_DIR / "mapoc") / "shp"
-    geojson_path = (data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc") /"geojson"
-
+    geojson_path = (
+        data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc"
+    ) / "geojson"

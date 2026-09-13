@@ -4,7 +4,7 @@ from the repository maintained by Matt DesLauriers (github.com/mattdesl).
 
 At first, the idea was to loop for all the combinations, and choose those
 with greener tones for ColorScheme.greens, bluer tones for ColorScheme.water,
-Then, a light version could be provided by assigning the lighter and darker 
+Then, a light version could be provided by assigning the lighter and darker
 tones to ColorScheme.facecolor and ColorScheme.roads, respectively.
 Finally, a darker version was provided with the opposite.
 
@@ -52,35 +52,33 @@ one, the whole suffix (including the hyphen) is omitted. The tilde ("~") is so t
 the names of the combinations sort last in an alphabetical list.
 """
 
-from collections import defaultdict, UserList, UserDict
-from dataclasses import dataclass, asdict
-from functools import partial, lru_cache
-from itertools import permutations
 import json
+from collections import UserList, defaultdict
+from collections.abc import Callable, Sequence
+from dataclasses import asdict, dataclass
+from functools import cache, partial
+from itertools import permutations
+from typing import Any
+
+from map_poster_creator.colorscheme import Color, ColorScheme, JSONEncoder
+from map_poster_creator.config import paths
 from requests import Session
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
-from typing import Sequence, Any, Callable, List, Optional
-
-from map_poster_creator.config import paths
-from map_poster_creator.colorscheme import Color, ColorScheme, JSONEncoder
 
 DATA_URL = (
-        "https://raw.githubusercontent.com/mattdesl/"
-        "dictionary-of-colour-combinations/master/colors.json"
+    "https://raw.githubusercontent.com/mattdesl/"
+    "dictionary-of-colour-combinations/master/colors.json"
 )
 FILE_PATH = paths.dictionary_of_color_combinations
+
 
 class colorops:
     @staticmethod
     def distance(x1: Any, x2: Any) -> float:
         h1, s1, l1 = Color(x1).hsl
         h2, s2, l2 = Color(x2).hsl
-        return (
-            (h1 - h2) ** 2
-            + (s1 - s2) ** 2
-            + (l1 - l2) ** 2
-        ) ** 0.5
+        return ((h1 - h2) ** 2 + (s1 - s2) ** 2 + (l1 - l2) ** 2) ** 0.5
 
     @staticmethod
     def closest(lst: Sequence[Any], target: Any) -> Any:
@@ -95,14 +93,17 @@ class colorops:
     def darkest(lst: Sequence[Any]) -> Any:
         return min(lst, key=lambda x: Color(x).luminance)
 
+
 @dataclass
 class FunCollection:
     pass
+
 
 @dataclass
 class Fun2Collection(FunCollection):
     facecolor: Callable
     roads: Callable
+
 
 @dataclass
 class Fun3Collection(FunCollection):
@@ -110,12 +111,14 @@ class Fun3Collection(FunCollection):
     roads: Callable
     greens: Callable
 
+
 @dataclass
 class Fun4Collection(FunCollection):
     facecolor: Callable
     roads: Callable
     water: Callable
     greens: Callable
+
 
 class AlgoFactory:
     def __init__(self, collection: FunCollection, verbose: bool = False):
@@ -125,22 +128,23 @@ class AlgoFactory:
 
     @staticmethod
     def _wrapper(keys, funs, verbose):
-        def algorithm(lst: List):
+        def algorithm(lst: list):
             lst = lst.copy()
             filtered = {}
-            for key, fun in zip(keys, funs):
+            for key, fun in zip(keys, funs, strict=False):
                 if verbose:
                     print(f"\t\tApplying {fun.__name__} -> {key}")
                 element = fun(lst)
                 lst.remove(element)
                 filtered[key] = element
             return filtered
+
         return algorithm
 
     def _generate_permutations(self):
         collection = self._collection
         for permutation in permutations(collection.items()):
-            keys, funs = list(zip(*permutation))
+            keys, funs = list(zip(*permutation, strict=False))
             yield self._wrapper(keys, funs, self.verbose)
 
     def __iter__(self):
@@ -153,6 +157,7 @@ class AlgoFactory:
         except StopIteration:
             raise StopIteration
 
+
 class DoccCombination(UserList):
     _assignments = {
         2: {
@@ -161,8 +166,8 @@ class DoccCombination(UserList):
                 roads=colorops.darkest,
             ),
             "dark": Fun2Collection(
-                facecolor = colorops.darkest,
-                roads = colorops.lightest,
+                facecolor=colorops.darkest,
+                roads=colorops.lightest,
             ),
         },
         3: {
@@ -172,9 +177,9 @@ class DoccCombination(UserList):
                 greens=partial(colorops.closest, target="green"),
             ),
             "dark": Fun3Collection(
-                facecolor = colorops.darkest,
-                roads = colorops.lightest,
-                greens = partial(colorops.closest, target="green"),
+                facecolor=colorops.darkest,
+                roads=colorops.lightest,
+                greens=partial(colorops.closest, target="green"),
             ),
         },
         4: {
@@ -185,23 +190,19 @@ class DoccCombination(UserList):
                 greens=partial(colorops.closest, target="green"),
             ),
             "dark": Fun4Collection(
-                facecolor = colorops.lightest,
-                roads = colorops.darkest,
-                water = partial(colorops.closest, target="blue"),
-                greens = partial(colorops.closest, target="green"),
+                facecolor=colorops.lightest,
+                roads=colorops.darkest,
+                water=partial(colorops.closest, target="blue"),
+                greens=partial(colorops.closest, target="green"),
             ),
         },
     }
 
     def __init__(self, lst):
         if len(lst) not in {2, 3, 4}:
-            raise ValueError(
-                f"We need 2, 3 or 4 elements. There were {len(lst)}."
-            )
+            raise ValueError(f"We need 2, 3 or 4 elements. There were {len(lst)}.")
         if not all(isinstance(element, Color) for element in lst):
-            raise TypeError(
-                f"We need all elements to be of type 'colours.Color'"
-            )
+            raise TypeError("We need all elements to be of type 'colours.Color'")
         self.assignments = self._assignments[len(lst)]
         super().__init__(lst)
 
@@ -217,23 +218,17 @@ class DoccCombination(UserList):
             return colorschemes
         return list(set(colorschemes))
 
-
     def get_colorschemes(self, prefix: str, unique: bool = True):
         colorschemes = {}
         for key in self.assignments.keys():
             key_colorschemes = self._get_colorschemes(key, unique=unique)
             for i, csc in enumerate(key_colorschemes, start=1):
-                suffix = (
-                    f"-{i:d}"
-                    if len(key_colorschemes) > 1
-                    else ""
-                )
-                colorschemes.update({
-                    prefix + key + suffix: csc
-                })
+                suffix = f"-{i:d}" if len(key_colorschemes) > 1 else ""
+                colorschemes.update({prefix + key + suffix: csc})
         return colorschemes
 
-@lru_cache(maxsize=None)
+
+@cache
 def get_docc_combinations():
     with (
         Session() as session,
@@ -267,15 +262,13 @@ def get_docc_schemes():
         for name, colors in docc_combinations.items():
             docc = DoccCombination(colors)
             prefix = f"~docc-{name:03d}-"
-            docc_schemes.update(
-                docc.get_colorschemes(prefix)
-            )
+            docc_schemes.update(docc.get_colorschemes(prefix))
             pbar.update()
 
     return docc_schemes
+
 
 if __name__ == "__main__":
     docc_schemes = get_docc_schemes()
     with open(FILE_PATH, "w", encoding="utf-8") as wf:
         json.dump(dict(docc_schemes), wf, cls=JSONEncoder)
-

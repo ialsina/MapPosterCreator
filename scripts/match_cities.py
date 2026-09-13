@@ -1,13 +1,14 @@
-from collections import defaultdict
-from ete3 import Tree
-import geopandas as gpd
 import json
-from pandas import read_csv, DataFrame
+from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
+
+import geopandas as gpd
+from ete3 import Tree
+from map_poster_creator.config import paths
+from pandas import read_csv
 from shapely.geometry import Point, Polygon
-from typing import Iterable, Sequence, Mapping
 from tqdm import tqdm
 
-from map_poster_creator.config import paths
 
 def _parse_polygons(data: str) -> Sequence[Polygon]:
     polygons = []
@@ -28,6 +29,7 @@ def _parse_polygons(data: str) -> Sequence[Polygon]:
             current_polygon.append(coords)
     return polygons
 
+
 def find_regions(tree: Tree, country: str) -> Iterable[str]:
     tree_iter = tree.traverse()
     if tree_iter is None:
@@ -40,6 +42,7 @@ def find_regions(tree: Tree, country: str) -> Iterable[str]:
             return (child.name for child in node_iter)
     return iter([])
 
+
 def get_region_polygons(tree: Tree) -> Mapping[str, Sequence[Polygon]]:
     polygons = {}
     tree_iter = tree.traverse()
@@ -51,20 +54,25 @@ def get_region_polygons(tree: Tree) -> Mapping[str, Sequence[Polygon]]:
             continue
         try:
             polygons[node.name] = _parse_polygons(node.polygon)
-        except ValueError as exc:
+        except ValueError:
             polygons[node.name] = []
     return polygons
 
-def get_region_centroids(polygons: Mapping[str, Sequence[Polygon]]) -> Mapping[str, Sequence[Point]]:
+
+def get_region_centroids(
+    polygons: Mapping[str, Sequence[Polygon]],
+) -> Mapping[str, Sequence[Point]]:
     centroids = {}
     for region, polygon_lst in polygons.items():
         centroids[region] = [polygon.centroid for polygon in polygon_lst]
     return centroids
 
+
 def is_point_in_polygon(point: Point, polygon: Polygon) -> bool:
     polygon_gdf = gpd.GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[polygon])
     point_gdf = gpd.GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[point])
-    return polygon_gdf.contains(point_gdf.loc[0, 'geometry'])[0]
+    return polygon_gdf.contains(point_gdf.loc[0, "geometry"])[0]
+
 
 print("Reading cities...")
 cities = read_csv(paths.cities_geonames_1000, low_memory=False, index_col=0)
@@ -83,11 +91,9 @@ city_distances = {}
 with tqdm(total=cities.shape[0], leave=True) as pbar:
     for _, row in cities.iterrows():
         city = row["asciiname"]
-        country = countries[
-            countries["Code"] == row["country code"]
-        ].iloc[0]["Name"]
+        country = countries[countries["Code"] == row["country code"]].iloc[0]["Name"]
         pbar.set_description(f"{f'{country}'}, {f'{city}':<30s}")
-        city_point = Point(row.longitude , row.latitude)
+        city_point = Point(row.longitude, row.latitude)
         for region in find_regions(regions, country):
             if any(
                 is_point_in_polygon(city_point, polygon)

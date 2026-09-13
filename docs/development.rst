@@ -14,8 +14,8 @@ Repository layout
 ``config.yaml``
   Repository-root configuration loaded by ``map_poster_creator.config``.
 
-``requirements.txt`` and ``pyproject.toml``
-  Runtime dependency list and package metadata/console-script declaration.
+``pyproject.toml``
+  Package metadata, runtime dependencies, and console-script declaration.
 
 ``docs/``
   This Sphinx documentation source.
@@ -30,9 +30,17 @@ Follow :doc:`installation`, then install the package in editable mode:
    pip install -e .
    pip install -r docs/requirements.txt
 
-The repository currently has no automated test suite or formatter
-configuration. Verify a focused change by exercising the affected command or
-function with representative local data, then build the documentation:
+Install development tooling and enable the git hooks:
+
+.. code-block:: bash
+
+   pip install -e ".[dev]"
+   pre-commit install
+
+Pre-commit runs Ruff linting/formatting and basic file hygiene checks on each
+commit. The repository currently has no automated test suite. Verify a focused
+change by exercising the affected command or function with representative local
+data, then build the documentation:
 
 .. code-block:: bash
 
@@ -57,7 +65,5 @@ them in automated environments.
 Compatibility notes
 -------------------
 
-``setup.py`` declares ``python_requires='>=3.7'``, but the current source
-contains PEP 604 union annotations (for example ``str | None``), whose syntax
-requires Python 3.10 or newer. Use Python 3.10+ unless the code and package
-metadata are aligned as part of a separate compatibility change.
+``pyproject.toml`` declares ``requires-python = ">=3.10"``, matching the PEP 604
+union annotations used in the source (for example ``str | None``).

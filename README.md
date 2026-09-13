@@ -1,6 +1,6 @@
 # Map Poster Creator
 
-**Map Poster Creator** - script for creating beautiful road maps of any cities, zones, sections according to OSM data. 
+**Map Poster Creator** - script for creating beautiful road maps of any cities, zones, sections according to OSM data.
 You can add green areas, roads, rivers, ponds, lakes to the map.
 There are several ready-made color schemes, but you can easily add your own colors.
 
@@ -30,14 +30,14 @@ The project is provided as-is.
 #### Linux
 - `apt-get install libgeos-dev`
 
-#### Windows 
-thanks [Lamroy95](https://github.com/Lamroy95) for Windows instruction 
+#### Windows
+thanks [Lamroy95](https://github.com/Lamroy95) for Windows instruction
 - Manually download and install two python packages (GDAL and Fiona):
-  - Download [GDAL .whl file](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) for your version of python (Python 3.8 - ...cp38....whl)  
-  - Download [Fiona .whl file](https://www.lfd.uci.edu/~gohlke/pythonlibs/#fiona)  
-  - Install GDAL: `pip install path\to\gdal.whl`  
-  - Install Fiona: `pip install path\to\fiona.whl`  
-  - Finally, install map-poster-creator: `pip install map-poster-creator`  
+  - Download [GDAL .whl file](https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal) for your version of python (Python 3.8 - ...cp38....whl)
+  - Download [Fiona .whl file](https://www.lfd.uci.edu/~gohlke/pythonlibs/#fiona)
+  - Install GDAL: `pip install path\to\gdal.whl`
+  - Install Fiona: `pip install path\to\fiona.whl`
+  - Finally, install map-poster-creator: `pip install map-poster-creator`
 - Or just use Docker =)
 
 #### MacOS
@@ -54,7 +54,7 @@ $ mapoc poster create --shp_path PATH_TO_SHP_DIR --geojson PATH_TO_GEOJSON --col
 ```
 
 ```bash
-$ mapoc poster create -h 
+$ mapoc poster create -h
 usage: Map Poster Creator poster create [-h] --shp_path SHP_PATH --geojson GEOJSON [--colors COLORS [COLORS ...]] [--output_prefix OUTPUT_PREFIX]
 
 Make Poster
@@ -70,7 +70,7 @@ optional arguments:
 ```
 
 ```bash
-$ mapoc misc -h          
+$ mapoc misc -h
 usage: Map Poster Creator misc [-h] {shp,geojson} ...
 
 Misc services
@@ -109,7 +109,7 @@ optional arguments:
 
 Example:
 ```bash
-$ mapoc color add --name "coffee" --facecolor "#433633" --water "#5c5552" --greens "#8f857d" --roads "#decbb7" 
+$ mapoc color add --name "coffee" --facecolor "#433633" --water "#5c5552" --greens "#8f857d" --roads "#decbb7"
 ```
 
 #### List available color schemes

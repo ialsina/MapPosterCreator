@@ -1,7 +1,6 @@
 import json
 import logging
 from dataclasses import dataclass
-from typing import Dict, List
 
 from shapely.geometry import Polygon
 
@@ -14,7 +13,7 @@ class MapGeometry:
     bottom: float
     left: float
     right: float
-    center: List[float]
+    center: list[float]
 
 
 def get_polygon_from_geojson(geojson_path: str) -> Polygon:
@@ -29,15 +28,19 @@ def get_polygon_from_geojson(geojson_path: str) -> Polygon:
 
     first_feature, *_ = features
     if not first_feature.get("type") == "Feature":
-        raise ValueError(f"Invalid feature type {first_feature.get('type')}. Expected 'Feature'")
+        raise ValueError(
+            f"Invalid feature type {first_feature.get('type')}. Expected 'Feature'"
+        )
 
     geometry: dict = first_feature.get("geometry")
-    if not geometry.get('type') == "Polygon":
-        raise ValueError(f"Invalid geometry type {first_feature.get('type')}. Expected 'Polygon'")
+    if not geometry.get("type") == "Polygon":
+        raise ValueError(
+            f"Invalid geometry type {first_feature.get('type')}. Expected 'Polygon'"
+        )
 
     coordinates: list = geometry.get("coordinates")
     if not coordinates:
-        raise ValueError(f"Coordinates not found. Check GeoJSON")
+        raise ValueError("Coordinates not found. Check GeoJSON")
 
     if len(coordinates) > 1:
         logger.warning(f"Found {len(coordinates)} polygons. Be use first")
@@ -55,5 +58,7 @@ def get_map_geometry_from_poly(poly: Polygon) -> MapGeometry:
     left = min(x1, x2)
     right = max(x1, x2)
     center = [(top + bottom) / 2, (left + right) / 2]
-    geometry = MapGeometry(top=top, bottom=bottom, left=left, right=right, center=center)
+    geometry = MapGeometry(
+        top=top, bottom=bottom, left=left, right=right, center=center
+    )
     return geometry

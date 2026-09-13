@@ -1,13 +1,13 @@
-from dataclasses import dataclass, field, asdict, astuple
-from functools import lru_cache
 import json
 import logging
-from typing import Mapping
+from collections.abc import Mapping
+from dataclasses import asdict, astuple, dataclass
+from functools import cache
 
+import matplotlib.pyplot as plt
 from colour import Color
 from matplotlib.colors import get_named_colors_mapping
 from matplotlib.patches import Rectangle
-import matplotlib.pyplot as plt
 
 from map_poster_creator.config import paths
 
@@ -19,25 +19,36 @@ _COLORSHCHEME_LIBRARY_FILES = (
 )
 _MATPLOTLIB_COLORS = get_named_colors_mapping()
 
+
 def _plot_palette(dct: Mapping[str, Color]):
     fig, ax = plt.subplots(figsize=(len(dct), 1))
 
     for i, (name, color) in enumerate(dct.items()):
         rect = Rectangle(
-            (i / len(dct), 0), 1 / len(dct), 1,
-            linewidth=0, edgecolor='none', facecolor=color.rgb
+            (i / len(dct), 0),
+            1 / len(dct),
+            1,
+            linewidth=0,
+            edgecolor="none",
+            facecolor=color.rgb,
         )
         ax.add_patch(rect)
         ax.text(
-            (i + 0.5) / len(dct), -0.1, name,
-            ha='center', va='center',
-            fontsize=12, color='black', fontweight='bold'
+            (i + 0.5) / len(dct),
+            -0.1,
+            name,
+            ha="center",
+            va="center",
+            fontsize=12,
+            color="black",
+            fontweight="bold",
         )
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.axis('off')
+    ax.axis("off")
     fig.tight_layout()
     plt.show()
+
 
 @dataclass
 class ColorScheme:
@@ -48,9 +59,7 @@ class ColorScheme:
 
     @staticmethod
     def _make_color(arg=None):
-        _type_error = TypeError(
-            f"Bad types in Color construction with argument {arg}."
-        )
+        _type_error = TypeError(f"Bad types in Color construction with argument {arg}.")
         if isinstance(arg, Color):
             return arg
         if arg is None:
@@ -59,15 +68,13 @@ class ColorScheme:
             if arg.startswith("#"):
                 return Color(arg)
             return Color(_MATPLOTLIB_COLORS[arg])
-        if isinstance(arg, (list, tuple)):
-            if not all(isinstance(element, (int, float)) for element in arg):
+        if isinstance(arg, list | tuple):
+            if not all(isinstance(element, int | float) for element in arg):
                 raise _type_error
             if not len(arg) == 3:
                 raise _type_error
             return Color(rgb=arg)
-        raise TypeError(
-            f"Error while constructing Color, wrong type ()"
-        )
+        raise TypeError("Error while constructing Color, wrong type ()")
 
     def __init__(self, facecolor, water=None, greens=None, roads=None):
         self.facecolor = self._make_color(facecolor)
@@ -92,6 +99,7 @@ class JSONEncoder(json.JSONEncoder):
         elif isinstance(o, ColorScheme):
             return {"__ColorScheme__": o.to_json()}
         return super().default(o)
+
 
 def object_hook(obj):
     if isinstance(obj, str):
@@ -130,6 +138,7 @@ _DEFAULT_SCHEMES = {
     ),
 }
 
+
 def _save_colorschemes(
     schemes: Mapping[str, ColorScheme],
 ) -> None:
@@ -137,40 +146,44 @@ def _save_colorschemes(
         json.dump(schemes, cf, cls=JSONEncoder)
     logger.info(f"Save user colors config: {_CONFIG_COLORSCHEME_PATH}")
 
+
 def _ensure_colorscheme_config_file() -> None:
     if _CONFIG_COLORSCHEME_PATH.is_file():
         return
     _CONFIG_COLORSCHEME_PATH.parent.mkdir(parents=True, exist_ok=True)
-    logger.info(f"User colors config not found!")
+    logger.info("User colors config not found!")
     _save_colorschemes(schemes=_DEFAULT_SCHEMES)
 
-@lru_cache(maxsize=None)
+
+@cache
 def get_colorschemes() -> dict[str, ColorScheme]:
     colorschemes = {}
     for file in _COLORSHCHEME_LIBRARY_FILES:
-        with open(file, "r", encoding="utf-8") as cf:
-            colorschemes.update(
-                json.load(cf, object_hook=object_hook)
-            )
+        with open(file, encoding="utf-8") as cf:
+            colorschemes.update(json.load(cf, object_hook=object_hook))
     return colorschemes
 
-@lru_cache(maxsize=None)
+
+@cache
 def get_available_colorschemes():
     return list(get_colorschemes().keys())
 
-@lru_cache(maxsize=None)
+
+@cache
 def get_colorscheme(name):
     return get_colorschemes()[name]
+
 
 def add_colorscheme(name: str, colorscheme: ColorScheme):
     colorschemes = get_colorschemes()
     colorschemes.update({name: colorscheme})
     _save_colorschemes(colorschemes)
 
+
 def remove_colorscheme(name: str):
     colorschemes = get_colorschemes()
     del colorschemes[name]
     _save_colorschemes(colorschemes)
 
-_ensure_colorscheme_config_file()
 
+_ensure_colorscheme_config_file()

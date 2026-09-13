@@ -4,11 +4,10 @@ Installation
 Requirements
 ------------
 
-The packaging metadata declares Python 3.7 or newer, but the current source
-uses annotation syntax that requires Python 3.10 or newer. Use Python 3.10+
-and the packages listed in ``requirements.txt``. Its geospatial stack includes
-GeoPandas, Shapely, and Fiona/GDAL; these packages may need system libraries
-before pip can install them.
+Use Python 3.10 or newer. Runtime dependencies are declared in
+``pyproject.toml``. Its geospatial stack includes GeoPandas, Shapely, and
+Fiona/GDAL; these packages may need system libraries before pip can install
+them.
 
 On Debian/Ubuntu systems, install GEOS development files first:
 
@@ -36,7 +35,6 @@ From the repository root:
    python -m venv .venv
    source .venv/bin/activate
    pip install --upgrade pip
-   pip install -r requirements.txt
    pip install -e .
 
 The editable installation makes the ``mapoc`` command available. Verify it
