@@ -33,7 +33,7 @@ Dockerfile
 !README.md
 
 # Output files
-pics/
+assets/
 *.png
 *.jpg
 *.jpeg

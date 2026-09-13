@@ -9,7 +9,7 @@ This repository is a fork of
 [k4m454k/MapPosterCreator](https://github.com/k4m454k/MapPosterCreator). It is
 distributed under the [MIT License](LICENSE).
 
-![Coral map poster](pics/msk_coral.png)
+![Coral map poster](assets/msk_coral.png)
 
 ## Requirements
 
