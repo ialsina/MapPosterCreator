@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.10.0] - 2026-09-13
 
 ### Added
 
@@ -92,6 +92,3 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
   only on nearest-centroid distance.
 - Made the city argument positional and allowed temporary GeoJSON reuse.
 - Refactored the command entry points, rendering core, and colour-scheme model.
-
-[Unreleased]: https://github.com/ialsina/MapPosterCreator/compare/v0.9.0...HEAD
-[0.9.0]: https://github.com/ialsina/MapPosterCreator/releases/tag/v0.9.0
