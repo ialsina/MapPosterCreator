@@ -1,5 +1,5 @@
-from functools import cache
 from abc import ABC, abstractmethod
+from functools import cache
 from typing import Generic, TypeVar
 
 T = TypeVar("T")

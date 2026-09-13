@@ -149,4 +149,3 @@ else:
 - The polygon will be automatically closed if the first and last points don't match.
 - If `shp_path` is not provided, the API will attempt to automatically determine the region from the polygon's centroid or the provided city name.
 - The SHP files may need to be downloaded on first use, which can take some time.
-

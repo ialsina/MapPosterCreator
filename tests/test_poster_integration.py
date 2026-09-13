@@ -13,11 +13,12 @@ Set KEEP_TEST_OUTPUTS=1 environment variable to keep files after test completion
 import json
 import os
 from pathlib import Path
+
 import pytest
 from shapely.geometry import Point
 
-from map_poster_creator.core import create_poster_from_coordinates
 from map_poster_creator.colorscheme import get_colorscheme
+from map_poster_creator.core import create_poster_from_coordinates
 from map_poster_creator.data.core import find_download_shp_from_point
 
 # Use persistent output directory (same as bash script) or temp if not keeping outputs
@@ -40,7 +41,7 @@ class TestPosterIntegration:
 
         # The file contains a geometry object, not a FeatureCollection
         # Parse it directly
-        with open(nyc_json_path, "r") as f:
+        with open(nyc_json_path) as f:
             geojson_data = json.load(f)
 
         geometry_type = geojson_data.get("type")
@@ -151,9 +152,9 @@ class TestPosterIntegration:
 
         # Additional validation: check file is reasonably sized (not just header)
         # A real poster should be at least a few KB
-        assert (
-            file_size > 1000
-        ), f"Output file seems too small (size: {file_size} bytes)"
+        assert file_size > 1000, (
+            f"Output file seems too small (size: {file_size} bytes)"
+        )
 
         # Print output location for user reference
         print(f"\n✓ Poster created successfully at: {output_file}")
@@ -209,16 +210,16 @@ class TestPosterIntegration:
 
             # Verify file was created and is valid
             assert output_file.exists(), f"Output file for {color_name} was not created"
-            assert (
-                output_file.stat().st_size > 0
-            ), f"Output file for {color_name} is empty"
+            assert output_file.stat().st_size > 0, (
+                f"Output file for {color_name} is empty"
+            )
 
             # Verify PNG magic bytes
             with open(output_file, "rb") as f:
                 first_bytes = f.read(8)
-                assert (
-                    first_bytes == b"\x89PNG\r\n\x1a\n"
-                ), f"Output for {color_name} does not have PNG magic bytes"
+                assert first_bytes == b"\x89PNG\r\n\x1a\n", (
+                    f"Output for {color_name} does not have PNG magic bytes"
+                )
 
     def test_poster_different_dpi_values(self, temp_dir, nyc_coordinates, nyc_centroid):
         """Test creating posters with different DPI values using real data."""
@@ -304,12 +305,12 @@ class TestPosterIntegration:
             )
 
             # Verify file was created
-            assert (
-                output_file.exists()
-            ), f"Output file for width {width} was not created"
-            assert (
-                output_file.stat().st_size > 0
-            ), f"Output file for width {width} is empty"
+            assert output_file.exists(), (
+                f"Output file for width {width} was not created"
+            )
+            assert output_file.stat().st_size > 0, (
+                f"Output file for width {width} is empty"
+            )
 
             # Verify PNG format
             with open(output_file, "rb") as f:

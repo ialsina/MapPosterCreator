@@ -21,8 +21,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from shapely.geometry import Point, Polygon
+
+from map_poster_creator.colorscheme import get_available_colorschemes, get_colorscheme
 from map_poster_creator.core import create_poster_from_coordinates
-from map_poster_creator.colorscheme import get_colorscheme, get_available_colorschemes
 from map_poster_creator.data.core import find_download_shp_from_point
 
 
@@ -39,7 +40,7 @@ def load_coordinates_from_json(json_path: Path):
         raise FileNotFoundError(f"Shape file not found: {json_path}")
 
     # The file contains a geometry object, not a FeatureCollection
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         geojson_data = json.load(f)
 
     geometry_type = geojson_data.get("type")

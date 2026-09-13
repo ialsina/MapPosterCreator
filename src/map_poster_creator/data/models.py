@@ -1,14 +1,14 @@
-from functools import cache
 import json
 import logging
 import time
 import traceback
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from functools import cache
 
-from pandas import DataFrame, read_csv
 from ete3 import Tree
 from geopandas import GeoDataFrame
-from shapely.geometry import Polygon, Point
+from pandas import DataFrame, read_csv
+from shapely.geometry import Point, Polygon
 
 from map_poster_creator.config import paths
 from map_poster_creator.data.base import BaseModel
@@ -89,20 +89,18 @@ class RegionsTree(BaseModel[Tree]):
                 newick_content = None
                 for encoding in ["utf-8", "latin-1", "ascii"]:
                     try:
-                        with open(paths.geofabrik_tree_nw, "r", encoding=encoding) as f:
+                        with open(paths.geofabrik_tree_nw, encoding=encoding) as f:
                             newick_content = f.read()
                         break
                     except UnicodeDecodeError:
                         continue
 
                 if newick_content is None:
-                    raise FileNotFoundError(f"Could not read file with any encoding")
+                    raise FileNotFoundError("Could not read file with any encoding")
 
                 # Validate we have content
                 if not newick_content or not newick_content.strip():
-                    raise FileNotFoundError(
-                        f"File is empty or contains only whitespace"
-                    )
+                    raise FileNotFoundError("File is empty or contains only whitespace")
 
                 # Check if content looks suspiciously small (might be partial copy)
                 content_size = len(newick_content)
@@ -171,7 +169,7 @@ class GeofabrikUrls(BaseModel[Mapping[str, str]]):
                 "Could not find GeoFabrik URLs data. "
                 "If running in a container, this feature may be unavailable."
             )
-        with open(paths.geofabrik_urls, "r", encoding="utf-8") as rf:
+        with open(paths.geofabrik_urls, encoding="utf-8") as rf:
             return json.load(rf)
 
 

@@ -4,22 +4,22 @@ This module contains interactive functions that depend on data access.
 These functions provide user interaction capabilities for data operations.
 """
 
-from pathlib import Path
-from typing import Optional
 import webbrowser
+from pathlib import Path
 from tempfile import NamedTemporaryFile
-from pandas import DataFrame, Series
-from ete3 import Tree
 
-from map_poster_creator.config import paths, GEOJSON_URL, GEOFABRIK_URL
+from ete3 import Tree
+from pandas import DataFrame, Series
+
+from map_poster_creator.config import GEOFABRIK_URL, GEOJSON_URL, paths
 from map_poster_creator.data.core import resolve_city
 from map_poster_creator.data.utils import (
-    _open_text_editor,
-    _remove_hash_trailing_lines,
     _ask_reuse,
+    _download_extract_shp,
     _exit_if_empty_file,
     _find_shp_url,
-    _download_extract_shp,
+    _open_text_editor,
+    _remove_hash_trailing_lines,
     format_city_candidate,
 )
 
@@ -46,9 +46,7 @@ def interactive_resolve_city(df: DataFrame) -> Series:
             pass
 
 
-def browser_get_geojson_path_interactive(
-    city: str, country: Optional[str] = None
-) -> Path:
+def browser_get_geojson_path_interactive(city: str, country: str | None = None) -> Path:
     """Interactively get GeoJSON path by opening browser for user to create polygon."""
     path = paths.geojson_path
     path.mkdir(parents=True, exist_ok=True)
@@ -85,7 +83,7 @@ def browser_get_geojson_path_interactive(
     return Path(filepath)
 
 
-def download_shp_interactive(city: str, country: Optional[str] = None) -> Path:
+def download_shp_interactive(city: str, country: str | None = None) -> Path:
     """Interactively download SHP file by opening browser for user to find region."""
     webbrowser.open_new_tab(GEOFABRIK_URL)
     message = (

@@ -195,4 +195,3 @@ If you get permission errors:
 ```bash
 chmod +x tests/*.sh
 ```
-

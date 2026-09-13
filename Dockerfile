@@ -103,4 +103,3 @@ ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Run the FastAPI application
 CMD ["python", "-m", "uvicorn", "map_poster_creator.api:app", "--host", "0.0.0.0", "--port", "8000"]
-

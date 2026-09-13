@@ -1,6 +1,7 @@
 import requests
-from map_poster_creator.config import paths
 from requests.adapters import HTTPAdapter
+
+from map_poster_creator.config import paths
 
 DATA_URL = "https://raw.githubusercontent.com/datasets/country-list/master/data.csv"
 

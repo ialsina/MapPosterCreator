@@ -1,10 +1,11 @@
-from collections import defaultdict
-from ete3 import Tree
-import geopandas as gpd
 import json
+from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
+
+import geopandas as gpd
+from ete3 import Tree
 from pandas import read_csv
 from shapely.geometry import Point, Polygon
-from typing import Iterable, Sequence, Mapping
 from tqdm import tqdm
 
 from map_poster_creator.config import paths

@@ -232,4 +232,3 @@ fi
 echo "You can now use Map Poster Creator:"
 echo "  mapoc poster create --shp_path PATH --geojson PATH --colors white black coral"
 echo ""
-

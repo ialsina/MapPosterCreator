@@ -1,31 +1,32 @@
-from argparse import ArgumentParser, Namespace
 import logging
-from pandas import DataFrame
-from pathlib import Path
-from tabulate import tabulate
-from typing import Callable, Tuple, Mapping, Sequence
 import sys
 import webbrowser
+from argparse import ArgumentParser, Namespace
+from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 
-from map_poster_creator.config import paths, config
+from pandas import DataFrame
+from tabulate import tabulate
+
+from map_poster_creator import __version__
+from map_poster_creator.colorscheme import (
+    ColorScheme,
+    add_colorscheme,
+    get_colorscheme,
+    get_colorschemes,
+)
+from map_poster_creator.config import config, paths
 from map_poster_creator.core import (
     create_poster,
 )
-from map_poster_creator.colorscheme import (
-    ColorScheme,
-    get_colorscheme,
-    get_colorschemes,
-    add_colorscheme,
-)
 from map_poster_creator.data import (
+    create_geojson_from_points,
     download_shp_interactive,
     find_download_shp,
     get_geojson_path_from_geoboundaries,
-    create_geojson_from_points,
-    read_coordinates_from_file,
     polygon_from_coordinates,
+    read_coordinates_from_file,
 )
-from map_poster_creator import __version__
 
 logging.basicConfig(
     level=logging.INFO,
@@ -310,7 +311,7 @@ def _size_to_inches(size_units: str) -> float:
         )
 
 
-def _split_city_country(city_country_str: str | None) -> Tuple[str | None, str | None]:
+def _split_city_country(city_country_str: str | None) -> tuple[str | None, str | None]:
     if city_country_str is None:
         return (None, None)
     city_country = [el.strip() for el in city_country_str.split(",", 2)]
@@ -394,8 +395,8 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
             region_callback = None
             if interactive:
                 from map_poster_creator.data.interactive import (
-                    interactive_resolve_city,
                     interactive_region_choose,
+                    interactive_resolve_city,
                 )
 
                 interactive_callback = interactive_resolve_city
@@ -446,7 +447,7 @@ _AVAILABLE_SERVICES = {
 }
 
 
-def get_parser() -> Tuple[ArgumentParser, Mapping[str, Callable]]:
+def get_parser() -> tuple[ArgumentParser, Mapping[str, Callable]]:
     parser = ArgumentParser(prog="mapoc", description="Map Poster Creator")
     parser.add_argument(
         "-v", "--version", action="version", version="%(prog)s " + str(__version__)

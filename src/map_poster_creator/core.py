@@ -1,21 +1,20 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-
-from typing import Tuple, Sequence, Optional
 from pathlib import Path
 
 from geopandas import GeoDataFrame
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import MultiPolygon, Polygon
 
 from map_poster_creator.colorscheme import ColorScheme
+from map_poster_creator.data import polygon_from_coordinates
 from map_poster_creator.geometry import (
-    get_polygon_from_geojson,
-    get_map_geometry_from_poly,
     MapGeometry,
     _polygon_to_geojson_file,
+    get_map_geometry_from_poly,
+    get_polygon_from_geojson,
 )
 from map_poster_creator.logs import log_processing, logging
 from map_poster_creator.plotting import plot_and_save
-from map_poster_creator.data import polygon_from_coordinates
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class shp_filename:
 @log_processing
 def _get_boundary_shape(
     geojson_or_polygon: Path | str | Polygon | MultiPolygon,
-) -> Tuple[Polygon | MultiPolygon, MapGeometry]:
+) -> tuple[Polygon | MultiPolygon, MapGeometry]:
     """
     Extract polygon and geometry from either a GeoJSON file path or a Polygon/MultiPolygon object.
     """
@@ -114,7 +113,7 @@ def create_poster_from_coordinates(
     width: int | float,
     dpi: int,
     output: Path,
-    geojson_output_path: Optional[Path] = None,
+    geojson_output_path: Path | None = None,
 ):
     """
     Create a poster from a list of coordinates defining a polygon.

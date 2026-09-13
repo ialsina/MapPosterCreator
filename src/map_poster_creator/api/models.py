@@ -1,7 +1,5 @@
 """Pydantic models for API requests and responses."""
 
-from typing import List, Optional
-
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -15,12 +13,12 @@ class Coordinate(BaseModel):
 class PosterRequest(BaseModel):
     """Request model for creating a poster."""
 
-    coordinates: List[Coordinate] = Field(
+    coordinates: list[Coordinate] = Field(
         ...,
         min_length=3,
         description="List of coordinates defining the polygon boundary (minimum 3 points)",
     )
-    shp_path: Optional[str] = Field(
+    shp_path: str | None = Field(
         None,
         description=(
             "Path to SHP directory containing OpenStreetMap data (roads, water, greens). "
@@ -29,21 +27,21 @@ class PosterRequest(BaseModel):
             "SHP files contain the map features (roads, rivers, parks) that get rendered inside your polygon boundary."
         ),
     )
-    city: Optional[str] = Field(
+    city: str | None = Field(
         None,
         description=(
             "City name to help automatically find the correct regional SHP dataset. "
             "This makes auto-detection more reliable."
         ),
     )
-    country: Optional[str] = Field(
+    country: str | None = Field(
         None,
         description=(
             "Country name to help automatically find the correct regional SHP dataset. "
             "Use with 'city' for better accuracy."
         ),
     )
-    latitude: Optional[float] = Field(
+    latitude: float | None = Field(
         None,
         ge=-90,
         le=90,
@@ -53,7 +51,7 @@ class PosterRequest(BaseModel):
             "Takes priority over city/country parameters."
         ),
     )
-    longitude: Optional[float] = Field(
+    longitude: float | None = Field(
         None,
         ge=-180,
         le=180,
@@ -72,7 +70,7 @@ class PosterRequest(BaseModel):
 
     @field_validator("coordinates")
     @classmethod
-    def validate_coordinates(cls, v: List[Coordinate]) -> List[Coordinate]:
+    def validate_coordinates(cls, v: list[Coordinate]) -> list[Coordinate]:
         if len(v) < 3:
             raise ValueError("At least 3 coordinates are required to define a polygon")
         return v
@@ -81,22 +79,22 @@ class PosterRequest(BaseModel):
 class PosterRequestSimple(BaseModel):
     """Simplified request model that accepts coordinates as a list of lists."""
 
-    coordinates: List[List[float]] = Field(
+    coordinates: list[list[float]] = Field(
         ...,
         min_length=3,
         description="List of [lon, lat] coordinate pairs: [[lon1, lat1], [lon2, lat2], ...]",
     )
-    shp_path: Optional[str] = Field(
+    shp_path: str | None = Field(
         None,
         description="Path to SHP directory. If not provided, will attempt to find automatically.",
     )
-    city: Optional[str] = Field(
+    city: str | None = Field(
         None, description="City name to help find the SHP region automatically"
     )
-    country: Optional[str] = Field(
+    country: str | None = Field(
         None, description="Country name to help find the SHP region automatically"
     )
-    latitude: Optional[float] = Field(
+    latitude: float | None = Field(
         None,
         ge=-90,
         le=90,
@@ -106,7 +104,7 @@ class PosterRequestSimple(BaseModel):
             "Takes priority over city/country parameters."
         ),
     )
-    longitude: Optional[float] = Field(
+    longitude: float | None = Field(
         None,
         ge=-180,
         le=180,
@@ -125,7 +123,7 @@ class PosterRequestSimple(BaseModel):
 
     @field_validator("coordinates")
     @classmethod
-    def validate_coordinates(cls, v: List[List[float]]) -> List[List[float]]:
+    def validate_coordinates(cls, v: list[list[float]]) -> list[list[float]]:
         if len(v) < 3:
             raise ValueError("At least 3 coordinates are required to define a polygon")
         for coord in v:

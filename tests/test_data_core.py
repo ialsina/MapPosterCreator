@@ -1,18 +1,19 @@
 """Comprehensive tests for data/core.py functions."""
 
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
 import pytest
 from pandas import DataFrame, Series
 from shapely.geometry import Point, Polygon
 
 from map_poster_creator.data.core import (
-    resolve_city,
-    get_geojson_path_from_geoboundaries,
-    find_download_shp_from_point,
-    find_download_shp,
-    _extract_shp_url,
     _calculate_point_choose,
+    _extract_shp_url,
+    find_download_shp,
+    find_download_shp_from_point,
+    get_geojson_path_from_geoboundaries,
+    resolve_city,
 )
 
 

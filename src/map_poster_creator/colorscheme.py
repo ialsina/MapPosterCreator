@@ -1,13 +1,13 @@
-from dataclasses import dataclass, asdict, astuple
-from functools import lru_cache
 import json
 import logging
-from typing import Mapping
+from collections.abc import Mapping
+from dataclasses import asdict, astuple, dataclass
+from functools import cache
 
+import matplotlib.pyplot as plt
 from colour import Color
 from matplotlib.colors import get_named_colors_mapping
 from matplotlib.patches import Rectangle
-import matplotlib.pyplot as plt
 
 from map_poster_creator.config import paths
 
@@ -155,21 +155,21 @@ def _ensure_colorscheme_config_file() -> None:
     _save_colorschemes(schemes=_DEFAULT_SCHEMES)
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_colorschemes() -> dict[str, ColorScheme]:
     colorschemes = {}
     for file in _COLORSHCHEME_LIBRARY_FILES:
-        with open(file, "r", encoding="utf-8") as cf:
+        with open(file, encoding="utf-8") as cf:
             colorschemes.update(json.load(cf, object_hook=object_hook))
     return colorschemes
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_available_colorschemes():
     return list(get_colorschemes().keys())
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_colorscheme(name):
     return get_colorschemes()[name]
 

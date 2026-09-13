@@ -52,18 +52,20 @@ one, the whole suffix (including the hyphen) is omitted. The tilde ("~") is so t
 the names of the combinations sort last in an alphabetical list.
 """
 
-from collections import defaultdict, UserList
-from dataclasses import dataclass, asdict
-from functools import partial, lru_cache
-from itertools import permutations
 import json
+from collections import UserList, defaultdict
+from collections.abc import Callable, Sequence
+from dataclasses import asdict, dataclass
+from functools import cache, partial
+from itertools import permutations
+from typing import Any
+
 from requests import Session
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
-from typing import Sequence, Any, Callable, List
 
-from map_poster_creator.config import paths
 from map_poster_creator.colorscheme import Color, ColorScheme, JSONEncoder
+from map_poster_creator.config import paths
 
 DATA_URL = (
     "https://raw.githubusercontent.com/mattdesl/"
@@ -127,7 +129,7 @@ class AlgoFactory:
 
     @staticmethod
     def _wrapper(keys, funs, verbose):
-        def algorithm(lst: List):
+        def algorithm(lst: list):
             lst = lst.copy()
             filtered = {}
             for key, fun in zip(keys, funs):
@@ -227,9 +229,11 @@ class DoccCombination(UserList):
         return colorschemes
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_docc_combinations():
-    with (Session() as session,):
+    with (
+        Session() as session,
+    ):
         session.mount("http://", HTTPAdapter(max_retries=3))
         session.mount("https://", HTTPAdapter(max_retries=3))
         response = session.get(DATA_URL, timeout=30)

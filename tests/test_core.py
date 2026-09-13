@@ -1,17 +1,18 @@
 """Comprehensive tests for core.py functions."""
 
-from unittest.mock import patch, MagicMock
-from shapely.geometry import Polygon, MultiPolygon
-from geopandas import GeoDataFrame
+from unittest.mock import MagicMock, patch
 
+from geopandas import GeoDataFrame
+from shapely.geometry import MultiPolygon, Polygon
+
+from map_poster_creator.colorscheme import ColorScheme
 from map_poster_creator.core import (
-    create_poster,
-    create_poster_from_coordinates,
     _get_boundary_shape,
     _preprocessing,
     _preprocessing_roads,
+    create_poster,
+    create_poster_from_coordinates,
 )
-from map_poster_creator.colorscheme import ColorScheme
 
 
 class TestGetBoundaryShape:
@@ -401,15 +402,15 @@ class TestCreatePoster:
                             greens_found = any(
                                 "gis_osm_pois" in path for path in call_paths
                             )
-                            assert (
-                                roads_found
-                            ), f"Roads shapefile not found in calls: {call_paths}"
-                            assert (
-                                water_found
-                            ), f"Water shapefile not found in calls: {call_paths}"
-                            assert (
-                                greens_found
-                            ), f"Greens shapefile not found in calls: {call_paths}"
+                            assert roads_found, (
+                                f"Roads shapefile not found in calls: {call_paths}"
+                            )
+                            assert water_found, (
+                                f"Water shapefile not found in calls: {call_paths}"
+                            )
+                            assert greens_found, (
+                                f"Greens shapefile not found in calls: {call_paths}"
+                            )
 
 
 class TestCreatePosterFromCoordinates:

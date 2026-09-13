@@ -5,19 +5,19 @@ downloads, and formatting that are used across the data package.
 """
 
 import os
+import platform
 import subprocess
 from pathlib import Path
-import platform
 from urllib.parse import urljoin
-import wget
 from zipfile import ZipFile
 
-from requests import Session
-from requests.adapters import HTTPAdapter
+import wget
 from bs4 import BeautifulSoup, Tag
 from pandas import Series
+from requests import Session
+from requests.adapters import HTTPAdapter
 
-from map_poster_creator.config import paths, GEOFABRIK_HREF_ATTRIBUTE_END
+from map_poster_creator.config import GEOFABRIK_HREF_ATTRIBUTE_END, paths
 
 
 # URL validation functions
@@ -92,7 +92,7 @@ def _find_shp_url(region_url: str, href_end: str = None) -> str:
         response = session.get(region_url)
         response.encoding = response.apparent_encoding
         if response.status_code != 200:
-            raise IOError(
+            raise OSError(
                 f"Could not fetch resource (status code: {response.status_code}): "
                 + str(region_url)
             )

@@ -3,7 +3,6 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import Optional
 
 from fastapi import HTTPException
 from shapely.geometry import Point, Polygon
@@ -75,10 +74,10 @@ def find_shp_from_latitude_longitude(latitude: float, longitude: float) -> Path:
 
 def find_shp_from_polygon(
     polygon: Polygon,
-    city: Optional[str] = None,
-    country: Optional[str] = None,
-    latitude: Optional[float] = None,
-    longitude: Optional[float] = None,
+    city: str | None = None,
+    country: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
 ) -> Path:
     """
     Find the SHP directory for a polygon by using lat/lon, city name, or centroid.
@@ -108,7 +107,7 @@ def find_shp_from_polygon(
             return find_shp_from_latitude_longitude(latitude, longitude)
         except HTTPException:
             raise
-        except Exception as e:
+        except Exception:
             # If lat/lon lookup fails, fall through to other methods
             pass
 

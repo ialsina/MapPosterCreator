@@ -25,20 +25,21 @@ from pathlib import Path
 # Add parent directory to path so we can import map_poster_creator
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from shapely.geometry import Point, Polygon, MultiPolygon, box
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
-from geopandas import GeoDataFrame
 import math
-import requests
 
+import matplotlib.pyplot as plt
+import requests
+from geopandas import GeoDataFrame
+from matplotlib.axes import Axes
+from shapely.geometry import MultiPolygon, Point, Polygon, box
+
+from map_poster_creator.colorscheme import get_available_colorschemes, get_colorscheme
 from map_poster_creator.core import (
-    create_poster_from_coordinates,
-    shp_filename,
     _preprocessing,
     _preprocessing_roads,
+    create_poster_from_coordinates,
+    shp_filename,
 )
-from map_poster_creator.colorscheme import get_colorscheme, get_available_colorschemes
 from map_poster_creator.data.core import find_download_shp_from_point
 from map_poster_creator.geometry import get_map_geometry_from_poly
 from map_poster_creator.plotting import plot_dataframe, road_width
@@ -49,7 +50,7 @@ def load_geometry_from_json(json_path: Path):
     if not json_path.exists():
         raise FileNotFoundError(f"Shape file not found: {json_path}")
 
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         geojson_data = json.load(f)
 
     geometry_type = geojson_data.get("type")
@@ -77,7 +78,7 @@ def load_coordinates_from_json(json_path: Path):
         raise FileNotFoundError(f"Shape file not found: {json_path}")
 
     # The file contains a geometry object, not a FeatureCollection
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         geojson_data = json.load(f)
 
     geometry_type = geojson_data.get("type")
@@ -638,6 +639,7 @@ def plot_geometry_on_world_map(geometry, bounds, ax):
     """Plot Polygon or MultiPolygon superimposed on world map."""
     # Load world map
     import geopandas as gpd
+
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
 
     # Clip world to view bounds for performance
@@ -646,7 +648,9 @@ def plot_geometry_on_world_map(geometry, bounds, ax):
     world_clipped = world.clip(view_box)
 
     # Plot world map first
-    world_clipped.plot(ax=ax, color="lightblue", edgecolor="darkblue", alpha=0.5, zorder=1)
+    world_clipped.plot(
+        ax=ax, color="lightblue", edgecolor="darkblue", alpha=0.5, zorder=1
+    )
 
     # Convert input geometry to GeoDataFrame
     if isinstance(geometry, Polygon):
@@ -657,17 +661,29 @@ def plot_geometry_on_world_map(geometry, bounds, ax):
         raise ValueError("geometry must be Polygon or MultiPolygon")
 
     # Plot the polygons
-    gdf_geom.plot(ax=ax, color="red", edgecolor="darkred", linewidth=2.5, alpha=0.8, zorder=5)
+    gdf_geom.plot(
+        ax=ax, color="red", edgecolor="darkred", linewidth=2.5, alpha=0.8, zorder=5
+    )
 
     # Plot centroids
-    for poly in (geometry.geoms if isinstance(geometry, MultiPolygon) else [geometry]):
+    for poly in geometry.geoms if isinstance(geometry, MultiPolygon) else [geometry]:
         c = poly.centroid
-        ax.plot(c.x, c.y, "ro", markersize=8, zorder=10, markeredgecolor="darkred", markeredgewidth=1)
+        ax.plot(
+            c.x,
+            c.y,
+            "ro",
+            markersize=8,
+            zorder=10,
+            markeredgecolor="darkred",
+            markeredgewidth=1,
+        )
 
     # Set bounds
     ax.set_xlim(left, right)
     ax.set_ylim(bottom, top)
-    ax.set_aspect(1.0 / max(0.01, (abs(top - bottom) / abs(right - left))))  # adjust aspect
+    ax.set_aspect(
+        1.0 / max(0.01, (abs(top - bottom) / abs(right - left)))
+    )  # adjust aspect
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
     ax.set_title("Multipolygon superimposed on world map")
@@ -676,9 +692,9 @@ def plot_geometry_on_world_map(geometry, bounds, ax):
 def plot_geometry_zoom_levels(geometry, output_path: Path, dpi: int = 150):
     """Plot geometry at multiple zoom levels using the zoom_bounds example."""
     zoom_bounds = [
-        (-180, -90, 180, 90),                  # World
-        (-100, -50, -30, 50),                  # Hemisphere
-        (-80, 8, -78, 10),                     # Regional
+        (-180, -90, 180, 90),  # World
+        (-100, -50, -30, 50),  # Hemisphere
+        (-80, 8, -78, 10),  # Regional
     ]
 
     fig, axes = plt.subplots(1, len(zoom_bounds), figsize=(20, 6))

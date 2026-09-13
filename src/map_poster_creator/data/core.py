@@ -1,32 +1,32 @@
 """Core data processing functions."""
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Callable
 
 from ete3 import Tree
-from shapely.geometry import Point
 from pandas import DataFrame, Series
+from shapely.geometry import Point
 from unidecode import unidecode
 
 from map_poster_creator.config import paths
+
+# Geometry imports at module level (no circular dependency)
+from map_poster_creator.data.geometry import _get_city_polygon_from_geoboundaries
 from map_poster_creator.data.getters import (
     get_city_df,
     get_country_df,
     get_geofabrik_urls,
-    get_region_polygons,
     get_region_centroids,
+    get_region_polygons,
 )
 from map_poster_creator.data.utils import (
     _ask_reuse,
     _download_extract_shp,
     is_valid_download_url,
 )
-
-# Geometry imports at module level (no circular dependency)
-from map_poster_creator.data.geometry import _get_city_polygon_from_geoboundaries
 from map_poster_creator.geometry import (
-    is_point_in_polygon,
     _polygon_to_geojson_file,
+    is_point_in_polygon,
 )
 
 
@@ -46,12 +46,12 @@ def _search_fun(df: DataFrame, search_term: str) -> Series:
 
 def resolve_city(
     city: str,
-    country: Optional[str] = None,
+    country: str | None = None,
     *,
     interactive: bool = True,
     element_if_one: bool = True,
     first: bool = False,
-    interactive_callback: Optional[Callable[[DataFrame], Series]] = None,
+    interactive_callback: Callable[[DataFrame], Series] | None = None,
 ) -> DataFrame | Series | None:
     """
     Resolve a city name to a city record.
@@ -103,10 +103,10 @@ def resolve_city(
 
 def get_geojson_path_from_geoboundaries(
     city: str,
-    country: Optional[str] = None,
-    country_code: Optional[str] = None,
+    country: str | None = None,
+    country_code: str | None = None,
     interactive: bool = False,
-    interactive_callback: Optional[Callable[[DataFrame], Series]] = None,
+    interactive_callback: Callable[[DataFrame], Series] | None = None,
 ) -> Path:
     """
     Get geojson path by automatically finding the city polygon from geoboundaries.
@@ -217,7 +217,7 @@ def _calculate_point_choose(
 ) -> Tree:
     """
     Calculate which region to choose based on point-in-polygon check.
-    
+
     Ensures the selected node is a leaf node (only leaf nodes have polygons).
     The sorted_distances should already contain only leaf nodes, but we verify.
     """
@@ -233,10 +233,10 @@ def _calculate_point_choose(
 
 def find_download_shp_from_point(
     point: Point,
-    calculate_point: Optional[bool] = False,
-    interactive: Optional[bool] = False,
+    calculate_point: bool | None = False,
+    interactive: bool | None = False,
     location_name: str = "point",
-    interactive_callback: Optional[Callable[[list], Tree]] = None,
+    interactive_callback: Callable[[list], Tree] | None = None,
 ) -> Path:
     """
     Find and download the SHP file for a geographic point.
@@ -270,16 +270,16 @@ def find_download_shp_from_point(
             distances.append((region_node, distance))
         except ValueError:
             continue
-    
+
     # Sort by distance (closest first)
     sorted_distances = sorted(distances, key=lambda x: x[1], reverse=False)
-    
+
     if len(sorted_distances) == 0:
         raise ValueError(
             f"No regions found for {location_name}. "
             "This may indicate that region data is not properly initialized."
         )
-    
+
     # Select the region node based on the method
     if calculate_point:
         # Use point-in-polygon check to find the region that actually contains the point
@@ -294,7 +294,7 @@ def find_download_shp_from_point(
     else:
         # Default: use the closest leaf node spatially (by centroid distance)
         region_node = sorted_distances[0][0]
-    
+
     # Final verification: ensure we selected a leaf node
     if not region_node.is_leaf():
         raise ValueError(
@@ -307,11 +307,11 @@ def find_download_shp_from_point(
 
 def find_download_shp(
     city: str,
-    country: Optional[str] = None,
-    calculate_point: Optional[bool] = False,
-    interactive: Optional[bool] = False,
-    interactive_callback: Optional[Callable[[DataFrame], Series]] = None,
-    region_callback: Optional[Callable[[list], Tree]] = None,
+    country: str | None = None,
+    calculate_point: bool | None = False,
+    interactive: bool | None = False,
+    interactive_callback: Callable[[DataFrame], Series] | None = None,
+    region_callback: Callable[[list], Tree] | None = None,
 ) -> Path:
     """
     Find and download the SHP file for a city.

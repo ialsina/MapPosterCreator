@@ -3,11 +3,12 @@
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
-from shapely.geometry import Point, Polygon
-from pandas import DataFrame, Series
 from ete3 import Tree
 from fastapi.testclient import TestClient
+from pandas import DataFrame, Series
+from shapely.geometry import Point, Polygon
 
 from map_poster_creator.api import app
 from map_poster_creator.colorscheme import ColorScheme
@@ -138,8 +139,8 @@ def mock_shp_dir(temp_dir):
 @pytest.fixture
 def mock_geodataframe():
     """Mock GeoDataFrame for testing."""
-    from shapely.geometry import Point
     import geopandas as gpd
+    from shapely.geometry import Point
 
     gdf = gpd.GeoDataFrame(
         {

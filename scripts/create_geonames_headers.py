@@ -6,6 +6,7 @@ Based on the standard GeoNames format documentation.
 """
 
 import sys
+
 from map_poster_creator.config import paths
 
 # Standard GeoNames allCountries.txt / cities1000.txt column format

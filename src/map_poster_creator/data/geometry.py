@@ -5,7 +5,7 @@ Pure geometry utilities are in map_poster_creator.geometry.
 """
 
 from pandas import Series
-from shapely.geometry import Point, Polygon, MultiPolygon
+from shapely.geometry import MultiPolygon, Point, Polygon
 
 from map_poster_creator.data.getters import get_geoboundaries_gdf
 

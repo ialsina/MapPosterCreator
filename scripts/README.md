@@ -7,13 +7,13 @@ This directory contains setup and data fetching scripts for Map Poster Creator. 
 ### 1. `create_geonames_headers.py`
 **Purpose**: Creates the `geonames_headers.txt` file required by `fetch_data_geonames.py` to parse GeoNames data format.
 
-**Inputs**: 
+**Inputs**:
 - None (generates file from standard GeoNames format)
 
 **Outputs**:
 - `~/.mapoc/geonames_headers.txt` - Column definitions for GeoNames cities1000.txt format
 
-**Dependencies**: 
+**Dependencies**:
 - Required by `fetch_data_geonames.py` before it can process city data
 
 **Usage**:
@@ -21,7 +21,7 @@ This directory contains setup and data fetching scripts for Map Poster Creator. 
 python scripts/create_geonames_headers.py
 ```
 
-**Notes**: 
+**Notes**:
 - This file must exist before running `fetch_data_geonames.py`
 - Based on the standard GeoNames format documentation
 
@@ -30,13 +30,13 @@ python scripts/create_geonames_headers.py
 ### 2. `fetch_geoboundaries.py`
 **Purpose**: Downloads the geoBoundariesCGAZ_ADM2.geojson file containing administrative boundaries for cities and regions.
 
-**Inputs**: 
+**Inputs**:
 - None (fetches from GitHub: wmgeolab/geoBoundaries)
 
 **Outputs**:
 - `~/.mapoc/geoBoundariesCGAZ_ADM2.geojson` - Large GeoJSON file with administrative boundaries
 
-**Dependencies**: 
+**Dependencies**:
 - Used by `map_poster_creator/data.py` via `get_geoboundaries_gdf()` function
 - Required for automatic city boundary polygon generation
 
@@ -45,7 +45,7 @@ python scripts/create_geonames_headers.py
 python scripts/fetch_geoboundaries.py
 ```
 
-**Notes**: 
+**Notes**:
 - This is a large file (several hundred MB) and download may take several minutes
 - Shows download progress during fetch
 - Prompts before overwriting existing file
@@ -55,7 +55,7 @@ python scripts/fetch_geoboundaries.py
 ### 3. `build_region_tree.py`
 **Purpose**: Builds a hierarchical tree structure of geographic regions from GeoFabrik and fetches polygon boundary data for each region.
 
-**Inputs**: 
+**Inputs**:
 - None (fetches from `https://download.geofabrik.de/`)
 
 **Outputs**:
@@ -63,7 +63,7 @@ python scripts/fetch_geoboundaries.py
 - `~/.mapoc/geofabrik_tree.txt` - Human-readable JSON tree structure
 - `~/.mapoc/geofabrik_urls.json` - Mapping of region names to their download URLs
 
-**Dependencies**: 
+**Dependencies**:
 - Used by `map_poster_creator/data.py` to find and download shapefile archives for regions
 - Required for the `download_shp_interactive` functionality
 
@@ -72,7 +72,7 @@ python scripts/fetch_geoboundaries.py
 python scripts/build_region_tree.py
 ```
 
-**Notes**: 
+**Notes**:
 - This script crawls the GeoFabrik website recursively
 - Fetches `.poly` polygon files for each region
 - Can take several minutes to complete due to network requests
@@ -270,4 +270,3 @@ The recommended order for running setup scripts:
 6. `fetch_docc_colors.py` - Optional color schemes
 
 See the main `README.md` and `scripts/setup.sh` for automated setup.
-

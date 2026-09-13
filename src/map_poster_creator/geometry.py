@@ -2,12 +2,12 @@
 
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Sequence
 
 from geopandas import GeoDataFrame
-from shapely.geometry import Point, Polygon, MultiPolygon
+from shapely.geometry import MultiPolygon, Point, Polygon
 
 from map_poster_creator.config import paths
 
@@ -20,7 +20,7 @@ class MapGeometry:
     bottom: float
     left: float
     right: float
-    center: List[float]
+    center: list[float]
 
 
 def _parse_polygons(data: str) -> Sequence[Polygon]:
@@ -195,8 +195,8 @@ def polygon_from_coordinates(coordinates: Sequence[Sequence[float]]) -> Polygon:
 
 def create_geojson_from_points(
     coordinates: Sequence[Sequence[float]],
-    output_path: Optional[Path] = None,
-    name: Optional[str] = None,
+    output_path: Path | None = None,
+    name: str | None = None,
 ) -> Path:
     """
     Create a GeoJSON file from a list of points defining a polygon.

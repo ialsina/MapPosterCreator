@@ -4,8 +4,9 @@ import sys
 from zipfile import ZipFile
 
 import wget
-from map_poster_creator.config import paths
 from pandas import read_csv
+
+from map_poster_creator.config import paths
 
 DATA_URL = "https://download.geonames.org/export/dump/cities1000.zip"
 

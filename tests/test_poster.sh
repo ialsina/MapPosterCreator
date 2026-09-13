@@ -129,4 +129,3 @@ fi
 
 echo "✓ Success! Poster saved to $OUTPUT_FILE (${FILE_SIZE} bytes)"
 exit 0
-

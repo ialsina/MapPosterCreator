@@ -6,8 +6,10 @@ Downloaded from the geoBoundaries project.
 """
 
 import sys
+
 import requests
 from requests.adapters import HTTPAdapter
+
 from map_poster_creator.config import paths
 
 # geoBoundaries CGAZ ADM2 download URL

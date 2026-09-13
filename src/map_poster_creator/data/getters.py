@@ -1,21 +1,22 @@
 """Getter functions for accessing data models."""
 
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
+
 from ete3 import Tree
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely.geometry import Point, Polygon
 
 from map_poster_creator.data.models import (
+    _all_region_polygons_model,
+    _cities_geonames,
     _city_df,
     _country_df,
-    _regions_tree,
-    _geofabrik_urls,
     _geoboundaries_gdf,
-    _cities_geonames,
-    _region_polygons_model,
-    _all_region_polygons_model,
+    _geofabrik_urls,
     _region_centroids_model,
+    _region_polygons_model,
+    _regions_tree,
 )
 
 

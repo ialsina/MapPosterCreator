@@ -1,9 +1,10 @@
 """Tests for API utility functions."""
 
 from unittest.mock import patch
+
 import pytest
 from fastapi import HTTPException
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Point, Polygon
 
 from map_poster_creator.api.utils import find_shp_from_polygon
 

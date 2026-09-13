@@ -1,15 +1,15 @@
-from collections import defaultdict
 import json
-from requests import Session, RequestException
-from requests.adapters import HTTPAdapter
-from urllib.parse import urljoin
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from pprint import pprint
-from unidecode import unidecode
-from tqdm import tqdm
-from typing import Tuple, Mapping, Sequence
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 from ete3 import TreeNode
+from requests import RequestException, Session
+from requests.adapters import HTTPAdapter
+from tqdm import tqdm
+from unidecode import unidecode
 
 from map_poster_creator.config import paths
 
@@ -51,7 +51,7 @@ def _get_description(url: str, region: str) -> str:
     return f"{region:>{max_region}s}: {url:<{max_url}s}"
 
 
-def find_tree(session) -> Tuple[TreeNode, UrlsType]:
+def find_tree(session) -> tuple[TreeNode, UrlsType]:
     def navigate_node(url, region="", depth=1):
         print(_get_description(url, region), end="\r")
 

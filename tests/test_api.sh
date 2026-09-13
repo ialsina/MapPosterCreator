@@ -87,10 +87,10 @@ log_test() {
 run_test() {
     local test_name="$1"
     local test_func="$2"
-    
+
     TESTS_TOTAL=$((TESTS_TOTAL + 1))
     log_test "$test_name"
-    
+
     if $test_func; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
         log_info "✓ $test_name passed"
@@ -108,7 +108,7 @@ check_api_health() {
     response=$(curl -s -w "\n%{http_code}" "$API_BASE_URL/health" || echo "000")
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$status_code" = "200" ]; then
         if echo "$body" | grep -q '"status".*"healthy"'; then
             return 0
@@ -123,27 +123,27 @@ test_root_endpoint() {
     response=$(curl -s -w "\n%{http_code}" "$API_BASE_URL/" || echo "000")
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     if [ "$status_code" != "200" ]; then
         log_error "Expected status 200, got $status_code"
         return 1
     fi
-    
+
     if ! echo "$body" | grep -q '"name".*"Map Poster Creator API"'; then
         log_error "Response doesn't contain expected API name"
         return 1
     fi
-    
+
     if ! echo "$body" | grep -q '"version"'; then
         log_error "Response doesn't contain version"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -153,22 +153,22 @@ test_health_endpoint() {
     response=$(curl -s -w "\n%{http_code}" "$API_BASE_URL/health" || echo "000")
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     if [ "$status_code" != "200" ]; then
         log_error "Expected status 200, got $status_code"
         return 1
     fi
-    
+
     if ! echo "$body" | grep -q '"status".*"healthy"'; then
         log_error "Response doesn't contain expected health status"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -178,30 +178,30 @@ test_colors_endpoint() {
     response=$(curl -s -w "\n%{http_code}" "$API_BASE_URL/colors" || echo "000")
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     if [ "$status_code" != "200" ]; then
         log_error "Expected status 200, got $status_code"
         return 1
     fi
-    
+
     if ! echo "$body" | grep -q '"available_colors"'; then
         log_error "Response doesn't contain 'available_colors'"
         return 1
     fi
-    
+
     if ! echo "$body" | grep -q '"schemes"'; then
         log_error "Response doesn't contain 'schemes'"
         return 1
     fi
-    
+
     # Save response for reference
     echo "$body" > "$OUTPUT_DIR/colors_response.json"
-    
+
     return 0
 }
 
@@ -209,27 +209,27 @@ test_colors_endpoint() {
 test_poster_invalid_coordinates() {
     local response
     local json_data='{"coordinates": [{"lon": -74.006, "lat": 40.7128}], "color": "white"}'
-    
+
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
         -H "Content-Type: application/json" \
         -d "$json_data" \
         "$API_BASE_URL/poster" || echo "000")
-    
+
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     # Should return 422 (validation error) or 400
     if [ "$status_code" != "422" ] && [ "$status_code" != "400" ]; then
         log_error "Expected status 422 or 400, got $status_code"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -241,12 +241,12 @@ test_poster_invalid_color() {
     # 1. Use /tmp which should exist in most containers
     # 2. If that fails, try with city/country to help SHP detection
     # 3. If both fail, we note that color validation couldn't be tested
-    
+
     local response
     local body
     local status_code
     local json_data
-    
+
     # First attempt: try with /tmp (should exist in most containers)
     json_data="{
         \"coordinates\": [
@@ -257,22 +257,22 @@ test_poster_invalid_color() {
         \"shp_path\": \"/tmp/dummy_shp_test\",
         \"color\": \"nonexistent_color_scheme\"
     }"
-    
+
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
         -H "Content-Type: application/json" \
         -d "$json_data" \
         "$API_BASE_URL/poster" || echo "000")
-    
+
     body=$(echo "$response" | head -n -1)
     status_code=$(echo "$response" | tail -n 1)
-    
+
     # If we got "SHP directory not found", try without shp_path but with city/country
     if [ "$status_code" = "400" ] && echo "$body" | grep -qi "SHP directory not found"; then
         if [ "$VERBOSE" = "true" ]; then
             echo "First attempt failed (SHP path not accessible), trying with city/country..."
         fi
-        
+
         # Second attempt: use city/country to help SHP detection
         json_data="{
             \"coordinates\": [
@@ -284,25 +284,25 @@ test_poster_invalid_color() {
             \"country\": \"United States\",
             \"color\": \"nonexistent_color_scheme\"
         }"
-        
+
         response=$(curl -s -w "\n%{http_code}" \
             -X POST \
             -H "Content-Type: application/json" \
             -d "$json_data" \
             "$API_BASE_URL/poster" || echo "000")
-        
+
         body=$(echo "$response" | head -n -1)
         status_code=$(echo "$response" | tail -n 1)
     fi
-    
+
     # Save response for debugging
     echo "$body" > "$OUTPUT_DIR/invalid_color_response.json"
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     # Should return 400 (bad request) or 422 (validation error)
     # 422 can occur if FastAPI validates before reaching the endpoint
     # 400 is returned by the endpoint when color scheme is invalid
@@ -313,7 +313,7 @@ test_poster_invalid_color() {
         fi
         return 1
     fi
-    
+
     # Check if response mentions color scheme error (case-insensitive)
     # FastAPI returns errors in format: {"detail": "message"} or {"detail": [...]}
     if echo "$body" | grep -qiE "(color scheme|unknown color|nonexistent_color_scheme|available schemes)"; then
@@ -351,20 +351,20 @@ test_poster_valid_request() {
         "width": 15.0,
         "dpi": 300
     }'
-    
+
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
         -H "Content-Type: application/json" \
         -d "$json_data" \
         "$API_BASE_URL/poster" \
         -o "$OUTPUT_DIR/poster_test.png" || echo "000")
-    
+
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
     fi
-    
+
     # This test may succeed (200) if SHP data is available, or fail (400/500) if not
     # We consider it a pass if we get a valid HTTP response
     if [ "$status_code" = "200" ]; then
@@ -391,27 +391,27 @@ test_poster_valid_request() {
 test_poster_simple_invalid() {
     local response
     local json_data='{"coordinates": [[-74.006, 40.7128]], "color": "white"}'
-    
+
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
         -H "Content-Type: application/json" \
         -d "$json_data" \
         "$API_BASE_URL/poster/simple" || echo "000")
-    
+
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     # Should return 422 (validation error) or 400
     if [ "$status_code" != "422" ] && [ "$status_code" != "400" ]; then
         log_error "Expected status 422 or 400, got $status_code"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -431,20 +431,20 @@ test_poster_simple_valid() {
         "width": 15.0,
         "dpi": 300
     }'
-    
+
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
         -H "Content-Type: application/json" \
         -d "$json_data" \
         "$API_BASE_URL/poster/simple" \
         -o "$OUTPUT_DIR/poster_simple_test.png" || echo "000")
-    
+
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
     fi
-    
+
     # This test may succeed (200) if SHP data is available, or fail (400/500) if not
     if [ "$status_code" = "200" ]; then
         if [ -f "$OUTPUT_DIR/poster_simple_test.png" ]; then
@@ -477,27 +477,27 @@ test_poster_invalid_dpi() {
         ],
         "dpi": 1000
     }'
-    
+
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
         -H "Content-Type: application/json" \
         -d "$json_data" \
         "$API_BASE_URL/poster" || echo "000")
-    
+
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     # Should return 422 (validation error)
     if [ "$status_code" != "422" ]; then
         log_error "Expected status 422, got $status_code"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -512,27 +512,27 @@ test_poster_invalid_width() {
         ],
         "width": -5.0
     }'
-    
+
     response=$(curl -s -w "\n%{http_code}" \
         -X POST \
         -H "Content-Type: application/json" \
         -d "$json_data" \
         "$API_BASE_URL/poster" || echo "000")
-    
+
     local body=$(echo "$response" | head -n -1)
     local status_code=$(echo "$response" | tail -n 1)
-    
+
     if [ "$VERBOSE" = "true" ]; then
         echo "Status: $status_code"
         echo "Response: $body"
     fi
-    
+
     # Should return 422 (validation error)
     if [ "$status_code" != "422" ]; then
         log_error "Expected status 422, got $status_code"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -540,7 +540,7 @@ test_poster_invalid_width() {
 main() {
     log_info "Starting API tests against $API_BASE_URL"
     log_info "Output directory: $OUTPUT_DIR"
-    
+
     # Check if API is running
     if ! check_api_health; then
         log_error "API is not responding at $API_BASE_URL/health"
@@ -548,9 +548,9 @@ main() {
         log_error "  uvicorn map_poster_creator.api:app --host 0.0.0.0 --port 8000"
         exit 1
     fi
-    
+
     log_info "API is responding, starting tests...\n"
-    
+
     # Run all tests
     run_test "Root endpoint (GET /)" test_root_endpoint
     run_test "Health check (GET /health)" test_health_endpoint
@@ -562,7 +562,7 @@ main() {
     run_test "Poster with valid request (POST /poster)" test_poster_valid_request
     run_test "Poster simple with invalid format (POST /poster/simple)" test_poster_simple_invalid
     run_test "Poster simple with valid format (POST /poster/simple)" test_poster_simple_valid
-    
+
     # Print summary
     echo ""
     log_info "========================================="
@@ -572,7 +572,7 @@ main() {
     log_info "Passed: $TESTS_PASSED"
     log_info "Failed: $TESTS_FAILED"
     log_info "========================================="
-    
+
     if [ $TESTS_FAILED -eq 0 ]; then
         log_info "All tests passed! ✓"
         exit 0
@@ -584,4 +584,3 @@ main() {
 
 # Run main function
 main "$@"
-
