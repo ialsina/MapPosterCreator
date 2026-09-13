@@ -203,6 +203,12 @@ def get_geojson_path_from_geoboundaries(
     return filepath
 
 
+def _node_has_downloadable_shp(node: Tree) -> bool:
+    """Return True if the region node has a GeoFabrik SHP download URL."""
+    urls = get_geofabrik_urls().get(node.name, [])
+    return any(is_valid_download_url(url) for url in urls)
+
+
 def _extract_shp_url(node: Tree) -> str:
     """Extract the SHP URL for a region node."""
     geofabrik_urls = get_geofabrik_urls()
@@ -212,21 +218,35 @@ def _extract_shp_url(node: Tree) -> str:
     raise ValueError(f"Couldn't find a satisfying a tag for {node.name}.")
 
 
+def _filter_regions_with_downloadable_shp(sorted_distances) -> list[tuple[Tree, float]]:
+    """Keep only regions that have a downloadable SHP extract."""
+    return [
+        (region_node, distance)
+        for region_node, distance in sorted_distances
+        if _node_has_downloadable_shp(region_node)
+    ]
+
+
 def _calculate_point_choose(point: Point, sorted_distances, location_name: str = "point") -> Tree:
     """
     Calculate which region to choose based on point-in-polygon check.
 
-    Ensures the selected node is a leaf node (only leaf nodes have polygons).
-    The sorted_distances should already contain only leaf nodes, but we verify.
+    Among all leaf regions that contain the point and have a downloadable SHP
+    extract, returns the smallest one (most specific region).
     """
+    matches: list[tuple[Tree, float]] = []
     for region_node, _ in sorted_distances:
-        # Verify this is a leaf node (defensive check)
         if not region_node.is_leaf():
+            continue
+        if not _node_has_downloadable_shp(region_node):
             continue
         for region_polygon in get_region_polygons(region_node):
             if is_point_in_polygon(point, region_polygon):
-                return region_node
-    raise ValueError(f"Couldn't find a satisfying region for {location_name}.")
+                matches.append((region_node, region_polygon.area))
+                break
+    if not matches:
+        raise ValueError(f"Couldn't find a satisfying region for {location_name}.")
+    return min(matches, key=lambda item: item[1])[0]
 
 
 def find_download_shp_from_point(
@@ -269,11 +289,16 @@ def find_download_shp_from_point(
 
     # Sort by distance (closest first)
     sorted_distances = sorted(distances, key=lambda x: x[1], reverse=False)
+    downloadable_distances = _filter_regions_with_downloadable_shp(sorted_distances)
 
     if len(sorted_distances) == 0:
         raise ValueError(
             f"No regions found for {location_name}. "
             "This may indicate that region data is not properly initialized."
+        )
+    if len(downloadable_distances) == 0:
+        raise ValueError(
+            f"No regions with downloadable SHP data found for {location_name}."
         )
 
     # Select the region node based on the method
@@ -283,13 +308,13 @@ def find_download_shp_from_point(
         region_node = _calculate_point_choose(point, sorted_distances, location_name)
     elif interactive:
         if interactive_callback is not None:
-            region_node = interactive_callback(sorted_distances)
+            region_node = interactive_callback(downloadable_distances)
         else:
             # No callback provided, use closest node (non-interactive fallback)
-            region_node = sorted_distances[0][0]
+            region_node = downloadable_distances[0][0]
     else:
         # Default: use the closest leaf node spatially (by centroid distance)
-        region_node = sorted_distances[0][0]
+        region_node = downloadable_distances[0][0]
 
     # Final verification: ensure we selected a leaf node
     if not region_node.is_leaf():

@@ -15,11 +15,10 @@ import os
 from pathlib import Path
 
 import pytest
-from shapely.geometry import Point
 
 from map_poster_creator.colorscheme import get_colorscheme
 from map_poster_creator.core import create_poster_from_coordinates
-from map_poster_creator.data.core import find_download_shp_from_point
+from map_poster_creator.data.core import find_download_shp
 
 # Use persistent output directory (same as bash script) or temp if not keeping outputs
 KEEP_OUTPUTS = os.environ.get("KEEP_TEST_OUTPUTS", "0") == "1"
@@ -71,17 +70,22 @@ class TestPosterIntegration:
 
         return coordinates
 
-    @pytest.fixture
-    def nyc_centroid(self, nyc_coordinates):
-        """Calculate centroid from NYC coordinates."""
-        from shapely.geometry import Polygon
-
-        polygon = Polygon(nyc_coordinates)
-        centroid = polygon.centroid
-        return Point(centroid.x, centroid.y)
+    @pytest.fixture(scope="class")
+    def nyc_shp_dir(self):
+        """Download real shapefiles for New York via city lookup."""
+        print(
+            "\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)..."
+        )
+        shp_dir = find_download_shp(
+            city="New York City",
+            country="United States",
+            interactive=False,
+        )
+        print(f"Shapefiles downloaded to: {shp_dir}")
+        return shp_dir
 
     def test_poster_equivalent_to_bash_script(
-        self, temp_dir, nyc_coordinates, nyc_centroid
+        self, temp_dir, nyc_coordinates, nyc_shp_dir
     ):
         """
         Test equivalent to test_poster.sh that creates a real PNG image.
@@ -102,18 +106,7 @@ class TestPosterIntegration:
             output_dir = temp_dir / "test_outputs"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Download REAL shapefiles for the test area (New York coordinates)
-        # This will download actual OpenStreetMap data from GeoFabrik
-        print(
-            "\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)..."
-        )
-        shp_dir = find_download_shp_from_point(
-            point=nyc_centroid,
-            calculate_point=True,
-            interactive=False,
-            location_name="test area",
-        )
-        print(f"Shapefiles downloaded to: {shp_dir}")
+        shp_dir = nyc_shp_dir
 
         # Output file (equivalent to test_outputs/poster.png)
         output_file = output_dir / "poster.png"
@@ -165,7 +158,7 @@ class TestPosterIntegration:
             print("  Set KEEP_TEST_OUTPUTS=1 to save files to tests/test_outputs/")
 
     def test_poster_with_different_colors(
-        self, temp_dir, nyc_coordinates, nyc_centroid
+        self, temp_dir, nyc_coordinates, nyc_shp_dir
     ):
         """Test creating posters with different color schemes using real data."""
         # Use persistent output directory if KEEP_TEST_OUTPUTS is set, otherwise use temp
@@ -175,17 +168,7 @@ class TestPosterIntegration:
             output_dir = temp_dir / "test_outputs"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Download REAL shapefiles for the test area (New York coordinates)
-        print(
-            "\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)..."
-        )
-        shp_dir = find_download_shp_from_point(
-            point=nyc_centroid,
-            calculate_point=True,
-            interactive=False,
-            location_name="test area",
-        )
-        print(f"Shapefiles downloaded to: {shp_dir}")
+        shp_dir = nyc_shp_dir
 
         # Test with different color schemes (equivalent to COLOR environment variable)
         color_schemes = ["white", "black"]
@@ -221,7 +204,7 @@ class TestPosterIntegration:
                     f"Output for {color_name} does not have PNG magic bytes"
                 )
 
-    def test_poster_different_dpi_values(self, temp_dir, nyc_coordinates, nyc_centroid):
+    def test_poster_different_dpi_values(self, temp_dir, nyc_coordinates, nyc_shp_dir):
         """Test creating posters with different DPI values using real data."""
         # Use persistent output directory if KEEP_TEST_OUTPUTS is set, otherwise use temp
         if OUTPUT_BASE_DIR:
@@ -230,17 +213,7 @@ class TestPosterIntegration:
             output_dir = temp_dir / "test_outputs"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Download REAL shapefiles for the test area (New York coordinates)
-        print(
-            "\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)..."
-        )
-        shp_dir = find_download_shp_from_point(
-            point=nyc_centroid,
-            calculate_point=True,
-            interactive=False,
-            location_name="test area",
-        )
-        print(f"Shapefiles downloaded to: {shp_dir}")
+        shp_dir = nyc_shp_dir
 
         color_scheme = get_colorscheme("white")
 
@@ -267,7 +240,7 @@ class TestPosterIntegration:
                 first_bytes = f.read(8)
                 assert first_bytes == b"\x89PNG\r\n\x1a\n"
 
-    def test_poster_different_widths(self, temp_dir, nyc_coordinates, nyc_centroid):
+    def test_poster_different_widths(self, temp_dir, nyc_coordinates, nyc_shp_dir):
         """Test creating posters with different width values using real data."""
         # Use persistent output directory if KEEP_TEST_OUTPUTS is set, otherwise use temp
         if OUTPUT_BASE_DIR:
@@ -276,17 +249,7 @@ class TestPosterIntegration:
             output_dir = temp_dir / "test_outputs"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Download REAL shapefiles for the test area (New York coordinates)
-        print(
-            "\nDownloading real shapefiles from GeoFabrik (this may take a few minutes)..."
-        )
-        shp_dir = find_download_shp_from_point(
-            point=nyc_centroid,
-            calculate_point=True,
-            interactive=False,
-            location_name="test area",
-        )
-        print(f"Shapefiles downloaded to: {shp_dir}")
+        shp_dir = nyc_shp_dir
 
         color_scheme = get_colorscheme("white")
 

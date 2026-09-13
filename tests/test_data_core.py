@@ -307,12 +307,19 @@ class TestCalculatePointChoose:
         """Test calculating point choose successfully."""
         sorted_distances = [(mock_region_node, 0.1)]
         with patch(
-            "map_poster_creator.data.core.get_region_polygons",
-            return_value=[sample_polygon],
+            "map_poster_creator.data.core._node_has_downloadable_shp",
+            return_value=True,
         ):
-            with patch("map_poster_creator.data.core.is_point_in_polygon", return_value=True):
-                result = _calculate_point_choose(sample_point, sorted_distances)
-                assert result == mock_region_node
+            with patch(
+                "map_poster_creator.data.core.get_region_polygons",
+                return_value=[sample_polygon],
+            ):
+                with patch(
+                    "map_poster_creator.data.core.is_point_in_polygon",
+                    return_value=True,
+                ):
+                    result = _calculate_point_choose(sample_point, sorted_distances)
+                    assert result == mock_region_node
 
     def test_calculate_point_choose_no_match(self, sample_point, mock_region_node):
         """Test calculating point choose when no polygon matches."""
@@ -327,42 +334,90 @@ class TestCalculatePointChoose:
                     _calculate_point_choose(sample_point, sorted_distances)
                 assert "Couldn't find a satisfying region" in str(exc_info.value)
 
+    def test_calculate_point_choose_prefers_smallest_region(self, sample_point):
+        """Test that the smallest containing region is selected."""
+        large_node = Mock()
+        large_node.is_leaf.return_value = True
+        large_node.name = "large-region"
+
+        small_node = Mock()
+        small_node.is_leaf.return_value = True
+        small_node.name = "small-region"
+
+        large_polygon = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
+        small_polygon = Polygon([(1, 1), (2, 1), (2, 2), (1, 2)])
+        sorted_distances = [(large_node, 0.1), (small_node, 1.0)]
+
+        def get_polygons(node):
+            if node == large_node:
+                return [large_polygon]
+            return [small_polygon]
+
+        with patch(
+            "map_poster_creator.data.core._node_has_downloadable_shp",
+            return_value=True,
+        ):
+            with patch(
+                "map_poster_creator.data.core.get_region_polygons",
+                side_effect=get_polygons,
+            ):
+                with patch(
+                    "map_poster_creator.data.core.is_point_in_polygon",
+                    return_value=True,
+                ):
+                    result = _calculate_point_choose(sample_point, sorted_distances)
+                    assert result == small_node
+
+    def test_calculate_point_choose_skips_region_without_shp(self, sample_point):
+        """Test that regions without downloadable SHP are ignored."""
+        no_shp_node = Mock()
+        no_shp_node.is_leaf.return_value = True
+        no_shp_node.name = "no-shp-region"
+
+        shp_node = Mock()
+        shp_node.is_leaf.return_value = True
+        shp_node.name = "shp-region"
+
+        polygon = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+        sorted_distances = [(no_shp_node, 0.1), (shp_node, 1.0)]
+
+        def has_downloadable_shp(node):
+            return node == shp_node
+
+        with patch(
+            "map_poster_creator.data.core._node_has_downloadable_shp",
+            side_effect=has_downloadable_shp,
+        ):
+            with patch(
+                "map_poster_creator.data.core.get_region_polygons",
+                return_value=[polygon],
+            ):
+                with patch(
+                    "map_poster_creator.data.core.is_point_in_polygon",
+                    return_value=True,
+                ):
+                    result = _calculate_point_choose(sample_point, sorted_distances)
+                    assert result == shp_node
+
 
 class TestFindDownloadShpFromPoint:
     """Tests for find_download_shp_from_point function."""
+
+    @staticmethod
+    def _passthrough_downloadable_regions(sorted_distances):
+        return sorted_distances
 
     def test_find_download_shp_from_point_success(
         self, sample_point, mock_shp_dir, mock_region_node
     ):
         """Test finding and downloading SHP from point successfully."""
         with patch(
-            "map_poster_creator.data.core.get_region_centroids",
-            return_value={mock_region_node: [sample_point]},
+            "map_poster_creator.data.core._filter_regions_with_downloadable_shp",
+            side_effect=self._passthrough_downloadable_regions,
         ):
             with patch(
-                "map_poster_creator.data.core._extract_shp_url",
-                return_value="https://example.com/shp.zip",
-            ):
-                with patch(
-                    "map_poster_creator.data.core._download_extract_shp",
-                    return_value=mock_shp_dir,
-                ):
-                    result = find_download_shp_from_point(
-                        sample_point, calculate_point=False, interactive=False
-                    )
-                    assert result == mock_shp_dir
-
-    def test_find_download_shp_from_point_calculate_point(
-        self, sample_point, mock_shp_dir, mock_region_node, sample_polygon
-    ):
-        """Test finding SHP with calculate_point=True."""
-        with patch(
-            "map_poster_creator.data.core.get_region_centroids",
-            return_value={mock_region_node: [sample_point]},
-        ):
-            with patch(
-                "map_poster_creator.data.core._calculate_point_choose",
-                return_value=mock_region_node,
+                "map_poster_creator.data.core.get_region_centroids",
+                return_value={mock_region_node: [sample_point]},
             ):
                 with patch(
                     "map_poster_creator.data.core._extract_shp_url",
@@ -373,94 +428,135 @@ class TestFindDownloadShpFromPoint:
                         return_value=mock_shp_dir,
                     ):
                         result = find_download_shp_from_point(
-                            sample_point, calculate_point=True, interactive=False
+                            sample_point, calculate_point=False, interactive=False
                         )
                         assert result == mock_shp_dir
+
+    def test_find_download_shp_from_point_calculate_point(
+        self, sample_point, mock_shp_dir, mock_region_node, sample_polygon
+    ):
+        """Test finding SHP with calculate_point=True."""
+        with patch(
+            "map_poster_creator.data.core._filter_regions_with_downloadable_shp",
+            side_effect=self._passthrough_downloadable_regions,
+        ):
+            with patch(
+                "map_poster_creator.data.core.get_region_centroids",
+                return_value={mock_region_node: [sample_point]},
+            ):
+                with patch(
+                    "map_poster_creator.data.core._calculate_point_choose",
+                    return_value=mock_region_node,
+                ):
+                    with patch(
+                        "map_poster_creator.data.core._extract_shp_url",
+                        return_value="https://example.com/shp.zip",
+                    ):
+                        with patch(
+                            "map_poster_creator.data.core._download_extract_shp",
+                            return_value=mock_shp_dir,
+                        ):
+                            result = find_download_shp_from_point(
+                                sample_point, calculate_point=True, interactive=False
+                            )
+                            assert result == mock_shp_dir
 
     def test_find_download_shp_from_point_interactive(
         self, sample_point, mock_shp_dir, mock_region_node
     ):
         """Test finding SHP in interactive mode."""
         callback = Mock(return_value=mock_region_node)
-        with patch("map_poster_creator.data.core.get_region_centroids") as mock_get_centroids:
-            # Return a dict with region_node as key and list of centroids as value
-            # The function calculates distances, so we need to provide centroids that will work
-            mock_get_centroids.return_value = {mock_region_node: [sample_point]}
-            with patch(
-                "map_poster_creator.data.core._extract_shp_url",
-                return_value="https://example.com/shp.zip",
-            ):
+        with patch(
+            "map_poster_creator.data.core._filter_regions_with_downloadable_shp",
+            side_effect=self._passthrough_downloadable_regions,
+        ):
+            with patch("map_poster_creator.data.core.get_region_centroids") as mock_get_centroids:
+                # Return a dict with region_node as key and list of centroids as value
+                # The function calculates distances, so we need to provide centroids that will work
+                mock_get_centroids.return_value = {mock_region_node: [sample_point]}
                 with patch(
-                    "map_poster_creator.data.core._download_extract_shp",
-                    return_value=mock_shp_dir,
+                    "map_poster_creator.data.core._extract_shp_url",
+                    return_value="https://example.com/shp.zip",
                 ):
-                    result = find_download_shp_from_point(
-                        sample_point,
-                        calculate_point=False,
-                        interactive=True,
-                        interactive_callback=callback,
-                    )
-                    assert result == mock_shp_dir
-                    # Verify callback was called with sorted_distances list
-                    callback.assert_called_once()
-                    # Check that it was called with a list of (region_node, distance) tuples
-                    call_args = callback.call_args[0]
-                    assert len(call_args) == 1
-                    assert isinstance(call_args[0], list)
-                    assert len(call_args[0]) > 0
-                    # Each element should be a tuple of (region_node, distance)
-                    assert isinstance(call_args[0][0], tuple)
-                    assert len(call_args[0][0]) == 2
-                    # The first element of the tuple should be the region node
-                    assert call_args[0][0][0] == mock_region_node
+                    with patch(
+                        "map_poster_creator.data.core._download_extract_shp",
+                        return_value=mock_shp_dir,
+                    ):
+                        result = find_download_shp_from_point(
+                            sample_point,
+                            calculate_point=False,
+                            interactive=True,
+                            interactive_callback=callback,
+                        )
+                        assert result == mock_shp_dir
+                        # Verify callback was called with sorted_distances list
+                        callback.assert_called_once()
+                        # Check that it was called with a list of (region_node, distance) tuples
+                        call_args = callback.call_args[0]
+                        assert len(call_args) == 1
+                        assert isinstance(call_args[0], list)
+                        assert len(call_args[0]) > 0
+                        # Each element should be a tuple of (region_node, distance)
+                        assert isinstance(call_args[0][0], tuple)
+                        assert len(call_args[0][0]) == 2
+                        # The first element of the tuple should be the region node
+                        assert call_args[0][0][0] == mock_region_node
 
     def test_find_download_shp_from_point_no_callback(
         self, sample_point, mock_shp_dir, mock_region_node
     ):
         """Test finding SHP in interactive mode without callback."""
         with patch(
-            "map_poster_creator.data.core.get_region_centroids",
-            return_value={mock_region_node: [sample_point]},
+            "map_poster_creator.data.core._filter_regions_with_downloadable_shp",
+            side_effect=self._passthrough_downloadable_regions,
         ):
             with patch(
-                "map_poster_creator.data.core._extract_shp_url",
-                return_value="https://example.com/shp.zip",
+                "map_poster_creator.data.core.get_region_centroids",
+                return_value={mock_region_node: [sample_point]},
             ):
                 with patch(
-                    "map_poster_creator.data.core._download_extract_shp",
-                    return_value=mock_shp_dir,
+                    "map_poster_creator.data.core._extract_shp_url",
+                    return_value="https://example.com/shp.zip",
                 ):
-                    result = find_download_shp_from_point(
-                        sample_point,
-                        calculate_point=False,
-                        interactive=True,
-                        interactive_callback=None,
-                    )
-                    assert result == mock_shp_dir
+                    with patch(
+                        "map_poster_creator.data.core._download_extract_shp",
+                        return_value=mock_shp_dir,
+                    ):
+                        result = find_download_shp_from_point(
+                            sample_point,
+                            calculate_point=False,
+                            interactive=True,
+                            interactive_callback=None,
+                        )
+                        assert result == mock_shp_dir
 
     def test_find_download_shp_from_point_custom_location_name(
         self, sample_point, mock_shp_dir, mock_region_node
     ):
         """Test finding SHP with custom location name."""
         with patch(
-            "map_poster_creator.data.core.get_region_centroids",
-            return_value={mock_region_node: [sample_point]},
+            "map_poster_creator.data.core._filter_regions_with_downloadable_shp",
+            side_effect=self._passthrough_downloadable_regions,
         ):
             with patch(
-                "map_poster_creator.data.core._extract_shp_url",
-                return_value="https://example.com/shp.zip",
+                "map_poster_creator.data.core.get_region_centroids",
+                return_value={mock_region_node: [sample_point]},
             ):
                 with patch(
-                    "map_poster_creator.data.core._download_extract_shp",
-                    return_value=mock_shp_dir,
+                    "map_poster_creator.data.core._extract_shp_url",
+                    return_value="https://example.com/shp.zip",
                 ):
-                    result = find_download_shp_from_point(
-                        sample_point,
-                        calculate_point=False,
-                        interactive=False,
-                        location_name="custom location",
-                    )
-                    assert result == mock_shp_dir
+                    with patch(
+                        "map_poster_creator.data.core._download_extract_shp",
+                        return_value=mock_shp_dir,
+                    ):
+                        result = find_download_shp_from_point(
+                            sample_point,
+                            calculate_point=False,
+                            interactive=False,
+                            location_name="custom location",
+                        )
+                        assert result == mock_shp_dir
 
 
 class TestFindDownloadShp:
