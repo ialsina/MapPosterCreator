@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `docker-compose.yml` for local service deployment with host bind mounts for
+  data, output, and logs.
+- Environment-variable overrides `MAPOC_KEEP_SHP_FILES` and
+  `MAPOC_KEEP_GEOJSON_FILES` for retaining on-request GeoFabrik shapefile and
+  GeoJSON downloads under the data directory.
+- Docker Compose `.env.example` and placeholder `.gitignore` files for
+  `data/`, `output/`, and `logs/`.
+
+### Changed
+
+- Docker images now default `MAPOC_KEEP_SHP_FILES=true` so GeoFabrik SHP
+  extracts persist under `/app/data/shp` instead of the temporary directory.
+- The runtime entrypoint pre-creates `shp/` and `geojson/` directories under
+  the effective data directory before starting Uvicorn.
+
 ## [0.10.0] - 2026-09-13
 
 ### Added

@@ -23,6 +23,7 @@ ENV C_INCLUDE_PATH=/usr/include/gdal
 # The entrypoint script will ensure data is in /app/data
 ENV MAPOC_DATA_DIR=/app/data
 ENV MAPOC_OUTPUT_DIR=/app/output
+ENV MAPOC_KEEP_SHP_FILES=true
 ENV LOG_DIR=/app/logs
 
 # Build argument to disable tiny mode (default: use tiny mode)
