@@ -7,7 +7,7 @@ export MAPOC_DATA_DIR="${MAPOC_DATA_DIR:-/app/data}"
 export MAPOC_OUTPUT_DIR="${MAPOC_OUTPUT_DIR:-/app/output}"
 
 # Ensure the directories exist
-mkdir -p "$MAPOC_DATA_DIR" "$MAPOC_OUTPUT_DIR"
+mkdir -p "$MAPOC_DATA_DIR" "$MAPOC_OUTPUT_DIR" "$MAPOC_DATA_DIR/shp" "$MAPOC_DATA_DIR/geojson"
 
 # Function to check if data directory exists and has required files with valid sizes
 check_data_directory() {

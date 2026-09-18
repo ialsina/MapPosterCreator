@@ -1,0 +1,27 @@
+# MapPosterCreator local Docker stack.
+#
+# Start:
+#   cp .env.example .env   # optional
+#   docker compose up -d --build
+#
+# Host directories under ./data, ./output, and ./logs persist downloads
+# (including on-request GeoFabrik SHP extracts) across container restarts.
+
+services:
+  mapoc:
+    build: .
+    image: ${MAPOC_IMAGE:-map-poster-creator:local}
+    container_name: mapoc
+    environment:
+      MAPOC_DATA_DIR: /app/data
+      MAPOC_OUTPUT_DIR: /app/output
+      MAPOC_KEEP_SHP_FILES: ${MAPOC_KEEP_SHP_FILES:-true}
+      MAPOC_KEEP_GEOJSON_FILES: ${MAPOC_KEEP_GEOJSON_FILES:-true}
+      LOG_DIR: /app/logs
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./logs:/app/logs
+    ports:
+      - "127.0.0.1:${MAPOC_HOST_PORT:-8000}:8000"
+    restart: unless-stopped

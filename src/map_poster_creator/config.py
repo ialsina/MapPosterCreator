@@ -21,6 +21,14 @@ _DEFAULT_DATA_DIR = Path(os.getenv("MAPOC_DATA_DIR", str(Path.home() / ".mapoc")
 _DEFAULT_OUTPUT_DIR = Path(os.getenv("MAPOC_OUTPUT_DIR", str(Path.home() / "mapoc")))
 _TEMP_DIR = Path(tempfile.gettempdir())
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
 # Ensure data_dir and output_dir exist
 if _DEFAULT_DATA_DIR:
     _DEFAULT_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -102,6 +110,10 @@ if "MAPOC_DATA_DIR" in os.environ:
     _config_dct["data_dir"] = str(get_data_dir())
 if "MAPOC_OUTPUT_DIR" in os.environ:
     _config_dct["output_dir"] = str(get_output_dir())
+if "MAPOC_KEEP_SHP_FILES" in os.environ:
+    _config_dct["keep_shp_files"] = _env_bool("MAPOC_KEEP_SHP_FILES", False)
+if "MAPOC_KEEP_GEOJSON_FILES" in os.environ:
+    _config_dct["keep_geojson_files"] = _env_bool("MAPOC_KEEP_GEOJSON_FILES", False)
 
 config = Config.from_dict(_config_dct)
 
@@ -128,9 +140,7 @@ class paths:
     geofabrik_urls = data_dir / "geofabrik_urls.json"
     geoboundaries_path = data_dir / "geoBoundariesCGAZ_ADM2.geojson"
     shp_path = (data_dir if config.keep_shp_files else _TEMP_DIR / "mapoc") / "shp"
-    geojson_path = (
-        data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc"
-    ) / "geojson"
+    geojson_path = (data_dir if config.keep_geojson_files else _TEMP_DIR / "mapoc") / "geojson"
 
 
 # URL constants
