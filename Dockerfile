@@ -26,8 +26,9 @@ ENV MAPOC_OUTPUT_DIR=/app/output
 ENV MAPOC_KEEP_SHP_FILES=true
 ENV LOG_DIR=/app/logs
 
-# Build argument to disable tiny mode (default: use tiny mode)
-ARG NO_TINY=false
+# Build argument: pass TINY=true for coordinates-only setup (default is full geographic data)
+ARG TINY=false
+ENV TINY=${TINY}
 
 # Build argument to specify external data directory (skips setup.sh)
 # If set, files will be copied from this directory (relative to build context) instead of downloading
@@ -51,22 +52,24 @@ RUN mkdir -p /app/data_source
 # Note: data/ is already copied by "COPY . ." above if it exists in build context
 # Priority: 1) data/ from build context, 2) DATA_DIR arg, 3) run setup.sh
 RUN if [ -d "/app/data" ] && [ -n "$(ls -A /app/data 2>/dev/null)" ] && \
-       [ -f "/app/data/geofabrik_tree.nw" ] 2>/dev/null; then \
+       [ -f "/app/data/geofabrik_tree.nw" ] 2>/dev/null && \
+       [ -f "/app/data/cities_geonames_1000.csv" ] 2>/dev/null && \
+       [ -f "/app/data/countries.csv" ] 2>/dev/null; then \
         echo "Using data/ directory from build context (host)"; \
         cp -r /app/data/* /app/data_source/ 2>/dev/null || true; \
         echo "Data copied from host data/ directory to /app/data_source"; \
     elif [ -n "$DATA_DIR" ] && [ -d "$DATA_DIR" ]; then \
         echo "Using DATA_DIR=$DATA_DIR"; \
         cp -r "$DATA_DIR"/* /app/data_source/ 2>/dev/null || true; \
-    elif [ "$NO_TINY" = "true" ] || [ "$NO_TINY" = "1" ]; then \
-        echo "data/ not found in build context. Running setup.sh in full mode (NO_TINY=true)"; \
-        chmod +x scripts/setup.sh && \
-        bash scripts/setup.sh --non-interactive --output /app/data_source && \
-        echo "Data created in /app/data_source"; \
-    else \
-        echo "data/ not found in build context. Running setup.sh in tiny mode (default)"; \
+    elif [ "$TINY" = "true" ] || [ "$TINY" = "1" ]; then \
+        echo "data/ not found in build context. Running setup.sh in tiny mode (TINY=true)"; \
         chmod +x scripts/setup.sh && \
         bash scripts/setup.sh --tiny --non-interactive --output /app/data_source && \
+        echo "Data created in /app/data_source"; \
+    else \
+        echo "data/ not found in build context. Running setup.sh in full mode (default)"; \
+        chmod +x scripts/setup.sh && \
+        bash scripts/setup.sh --non-interactive --output /app/data_source && \
         echo "Data created in /app/data_source"; \
     fi
 

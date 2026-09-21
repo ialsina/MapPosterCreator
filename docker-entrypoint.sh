@@ -9,11 +9,26 @@ export MAPOC_OUTPUT_DIR="${MAPOC_OUTPUT_DIR:-/app/output}"
 # Ensure the directories exist
 mkdir -p "$MAPOC_DATA_DIR" "$MAPOC_OUTPUT_DIR" "$MAPOC_DATA_DIR/shp" "$MAPOC_DATA_DIR/geojson"
 
+is_tiny_mode() {
+	[ "${TINY:-false}" = "true" ] || [ "${TINY:-false}" = "1" ]
+}
+
 # Function to check if data directory exists and has required files with valid sizes
 check_data_directory() {
 	local dir="$1"
-	if [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ] &&
-		[ -f "${dir}/geofabrik_tree.nw" ]; then
+	local has_required_files=false
+
+	if is_tiny_mode; then
+		if [ -f "${dir}/geofabrik_tree.nw" ]; then
+			has_required_files=true
+		fi
+	elif [ -f "${dir}/geofabrik_tree.nw" ] &&
+		[ -f "${dir}/cities_geonames_1000.csv" ] &&
+		[ -f "${dir}/countries.csv" ]; then
+		has_required_files=true
+	fi
+
+	if [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ] && [ "$has_required_files" = true ]; then
 		# Verify file size is reasonable (should be ~4MB, at least 100KB)
 		local file_size=$(stat -c%s "${dir}/geofabrik_tree.nw" 2>/dev/null || stat -f%z "${dir}/geofabrik_tree.nw" 2>/dev/null || echo "0")
 		if [ "$file_size" -lt 100000 ]; then
@@ -56,8 +71,14 @@ prepare_data_directory() {
 	mkdir -p "$output_dir"
 	chmod +x /app/scripts/setup.sh
 
-	# Run setup.sh in tiny mode to create data
-	if /app/scripts/setup.sh --tiny --non-interactive --output "$output_dir"; then
+	if is_tiny_mode; then
+		setup_args=(--tiny --non-interactive --output "$output_dir")
+	else
+		setup_args=(--non-interactive --output "$output_dir")
+	fi
+
+	# Run setup to create the Geofabrik region tree (and city/country data unless tiny)
+	if /app/scripts/setup.sh "${setup_args[@]}"; then
 		echo "Data directory created successfully: $output_dir"
 		return 0
 	else

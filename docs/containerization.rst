@@ -51,17 +51,14 @@ context. Pre-generating it avoids repeated network downloads:
    bash scripts/setup.sh --tiny --non-interactive --output data
    docker build -t map-poster-creator .
 
-If no usable data is supplied, the default build runs the setup pipeline in
-tiny mode while skipping colours. Tiny mode creates the Geofabrik region
-index needed for coordinate-based requests, but omits city and geoBoundaries
-datasets. Because of the colour-loader limitation above, automatically
-generated data is not sufficient for poster endpoints.
-
-Set ``NO_TINY=true`` to request the full six-step data setup:
+If no usable data is supplied, the default build runs the full six-step setup
+pipeline (countries, GeoNames cities, Geofabrik region tree, geoBoundaries, and
+colour schemes). Pass ``TINY=true`` to build a smaller coordinates-only image
+that omits city and geoBoundaries datasets:
 
 .. code-block:: bash
 
-   docker build --build-arg NO_TINY=true -t map-poster-creator:full .
+   docker build --build-arg TINY=true -t map-poster-creator:tiny .
 
 ``DATA_DIR`` must identify a directory available inside the build context;
 the selected data is copied into the image and changes require a rebuild:

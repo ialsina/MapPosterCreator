@@ -23,6 +23,16 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
   extracts persist under `/app/data/shp` instead of the temporary directory.
 - The runtime entrypoint pre-creates `shp/` and `geojson/` directories under
   the effective data directory before starting Uvicorn.
+- Docker images now run the full geographic data setup by default (countries,
+  GeoNames cities, Geofabrik region tree, and geoBoundaries), enabling city and
+  country name lookup in poster requests.
+- Replaced the `NO_TINY` build argument with `TINY`; pass `--build-arg
+  TINY=true` (or set the `TINY` environment variable at runtime) for the smaller
+  coordinates-only dataset.
+- The runtime entrypoint treats a data directory as complete only when it
+  includes `cities_geonames_1000.csv` and `countries.csv` (unless `TINY=true`),
+  so volumes seeded with the old tiny-only bundle are refreshed from the image
+  on the next start.
 
 ## [0.10.0] - 2026-09-13
 

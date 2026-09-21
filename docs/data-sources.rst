@@ -83,10 +83,11 @@ Setup options
   ``MAPOC_DATA_DIR``; otherwise the configured data directory defaults to
   ``~/.mapoc``.
 
-The Docker image invokes tiny, non-interactive setup with ``--skip-colors`` by
-default when no prepared data is available. ``NO_TINY=true`` selects the full
-geographic setup but still skips colours. Supply prepared data containing
-``docc_colors.json`` for poster operation and see :doc:`containerization`.
+The Docker image runs the full non-interactive setup by default when no
+prepared data is available. Pass ``TINY=true`` at build time (or set the
+``TINY`` environment variable at runtime) for coordinates-only mode. Supply
+prepared data containing ``docc_colors.json`` for poster operation and see
+:doc:`containerization`.
 
 Generated files
 ---------------

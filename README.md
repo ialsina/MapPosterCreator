@@ -170,8 +170,9 @@ The image is intended to run the HTTP service on port 8000 and uses:
 - `LOG_DIR=/app/logs`
 - `LOG_LEVEL=INFO`
 
-The Dockerfile supports `NO_TINY` and `DATA_DIR` build arguments, stages
-generated data, and includes a `/health`-based health check.
+The Dockerfile supports `TINY` and `DATA_DIR` build arguments, stages
+generated data, and includes a `/health`-based health check. Full geographic
+setup is the default; pass `--build-arg TINY=true` for coordinates-only mode.
 
 Two current implementation issues prevent presenting the image as
 build-and-run ready:
