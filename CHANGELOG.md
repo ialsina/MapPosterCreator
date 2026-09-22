@@ -34,6 +34,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
   so volumes seeded with the old tiny-only bundle are refreshed from the image
   on the next start.
 
+### Fixed
+
+- Updated ADM2 geoboundaries download URL.
+
 ## [0.10.0] - 2026-09-13
 
 ### Added

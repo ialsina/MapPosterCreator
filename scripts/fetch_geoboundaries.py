@@ -16,8 +16,8 @@ from map_poster_creator.config import paths
 # This is the Comprehensive Global Administrative Zones (CGAZ) dataset
 # ADM2 refers to second-level administrative divisions (cities, counties, etc.)
 GEOBOUNDARIES_URL = (
-    "https://github.com/wmgeolab/geoBoundaries/raw/"
-    "release-data/gbOpen/CGAZ/ADM2/geoBoundariesCGAZ_ADM2.geojson"
+    "https://github.com/wmgeolab/geoBoundaries/raw/main/"
+    "releaseData/CGAZ/geoBoundariesCGAZ_ADM2.geojson"
 )
 
 
