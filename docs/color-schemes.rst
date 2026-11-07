@@ -31,8 +31,10 @@ Create or replace a scheme
      --roads "#decbb7"
 
 Colours may be hexadecimal RGB values or Matplotlib named colours, such as
-``navy``. Adding a name that already exists updates the in-memory mapping and
-writes the merged mapping to ``<data_dir>/colors.json``.
+``navy``. The HTTP ``color`` field on ``POST /poster`` accepts the same value
+formats either as a registered scheme name or as an inline JSON object with
+those four keys. Adding a name that already exists updates the in-memory
+mapping and writes the merged mapping to ``<data_dir>/colors.json``.
 
 Use palettes
 ------------
@@ -42,6 +44,15 @@ Render one poster for each named scheme:
 .. code-block:: bash
 
    mapoc poster "Berlin, Germany" --colors white coffee coral
+
+Each ``--colors`` argument may also be a JSON object with keys ``facecolor``,
+``water``, ``greens``, and ``roads``. Values may be hexadecimal strings,
+Matplotlib/HTML colour names, or three-number RGB lists:
+
+.. code-block:: bash
+
+   mapoc poster "Berlin, Germany" --colors \
+     '{"facecolor":"#433633","water":"navy","greens":[0.55,0.52,0.49],"roads":"wheat"}'
 
 Preview a palette interactively:
 

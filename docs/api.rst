@@ -105,6 +105,20 @@ Colour schemes
   Holds four ``colour.Color`` values. Inputs can be hexadecimal strings,
   Matplotlib named colours, RGB triples, or ``Color`` objects.
 
+``COLOR_SCHEME_KEYS``
+  Tuple of the four layer keys required for inline schemes:
+  ``facecolor``, ``water``, ``greens``, and ``roads``.
+
+``color_scheme_from_mapping(data)``
+  Build a ``ColorScheme`` from a mapping that contains exactly those keys.
+  Raises ``ValueError`` for missing, extra, or invalid colour values.
+
+``resolve_poster_color(spec)``
+  Resolve a poster palette from a registered scheme name, a JSON object string
+  (CLI), or a mapping / Pydantic ``InlineColorScheme`` (API). Returns
+  ``(ColorScheme, label)`` where ``label`` is the scheme name or a stable
+  ``custom_*`` suffix for inline definitions.
+
 ``get_colorschemes()``, ``get_available_colorschemes()``, and ``get_colorscheme(name)``
   Access the cached palette library.
 
@@ -142,9 +156,14 @@ HTTP service types
 ``Coordinate``
   Pydantic longitude/latitude pair with geographic range validation.
 
+``InlineColorScheme``
+  Pydantic model for inline poster colours with required ``facecolor``,
+  ``water``, ``greens``, and ``roads`` fields.
+
 ``PosterRequest`` and ``PosterRequestSimple``
   Request models for object-based and array-based coordinate payloads,
-  including optional shapefile/location hints and render settings.
+  including optional shapefile/location hints and render settings. The
+  ``color`` field accepts either a scheme name or an ``InlineColorScheme``.
 
 ``find_shp_from_latitude_longitude(latitude, longitude)``
   Selects a downloadable Geofabrik region from an explicit point.

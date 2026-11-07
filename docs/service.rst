@@ -75,10 +75,13 @@ Endpoints
   Return all available colour-scheme names and their component colours.
 
 ``POST /poster``
-  Accept coordinate objects and return a PNG.
+  Accept coordinate objects and return a PNG. The ``color`` field may be a
+  scheme name or an inline object with ``facecolor``, ``water``, ``greens``,
+  and ``roads``.
 
 ``POST /poster/simple``
-  Accept the same request with coordinates represented as arrays.
+  Accept the same request with coordinates represented as arrays and the same
+  ``color`` formats.
 
 The service has no ``/poster/json`` route.
 
@@ -113,9 +116,33 @@ Optional fields are:
 * ``shp_path``: an existing server-side shapefile directory;
 * ``latitude`` and ``longitude``: a point used to select a Geofabrik region;
 * ``city`` and ``country``: location names used for region selection;
-* ``color``: colour scheme name, default ``white``;
+* ``color``: colour scheme name (default ``white``) or an inline object with
+  keys ``facecolor``, ``water``, ``greens``, and ``roads`` (hex, HTML/Matplotlib
+  name, or ``[r, g, b]`` per value);
 * ``width``: poster width in inches, default ``15.0``;
 * ``dpi``: output resolution, default ``300``.
+
+Inline colours example:
+
+.. code-block:: bash
+
+   curl -X POST http://localhost:8000/poster \
+     -H "Content-Type: application/json" \
+     -d '{
+       "coordinates": [
+         {"lon": 2.145, "lat": 41.375},
+         {"lon": 2.190, "lat": 41.375},
+         {"lon": 2.190, "lat": 41.410}
+       ],
+       "shp_path": "/path/to/shp",
+       "color": {
+         "facecolor": "#433633",
+         "water": "navy",
+         "greens": [0.55, 0.52, 0.49],
+         "roads": "wheat"
+       }
+     }' \
+     --output poster.png
 
 The simplified endpoint accepts ``[[longitude, latitude], ...]``:
 

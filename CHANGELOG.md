@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Inline colour schemes for poster rendering: pass a dict with keys
+  `facecolor`, `water`, `greens`, and `roads` (hex strings, HTML/Matplotlib
+  names, or `[r, g, b]` values) via CLI `--colors` JSON or the HTTP `color`
+  field on `POST /poster` and `POST /poster/simple`, without registering a
+  named palette.
+- Shared helpers `color_scheme_from_mapping` and `resolve_poster_color` in the
+  colour module for CLI and API resolution.
+
 ## [0.11.0] - 2026-09-22
 
 ### Added

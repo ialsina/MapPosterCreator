@@ -73,7 +73,9 @@ Create a map poster from polygon coordinates.
 - `shp_path` (optional): Path to SHP directory. If not provided, will attempt to find automatically.
 - `city` (optional): City name to help find the SHP region automatically.
 - `country` (optional): Country name to help find the SHP region automatically.
-- `color` (optional, default: "white"): Color scheme name. Use `/colors` endpoint to see available schemes.
+- `color` (optional, default: "white"): Registered scheme name or an object
+  with `facecolor`, `water`, `greens`, and `roads` (hex, HTML/Matplotlib name,
+  or `[r, g, b]` per value). Use `/colors` to list registered names.
 - `width` (optional, default: 15.0): Width of the poster in inches.
 - `dpi` (optional, default: 300): Dots per inch (resolution), max 600.
 

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 from collections.abc import Mapping
@@ -18,6 +19,8 @@ _COLORSHCHEME_LIBRARY_FILES = (
     paths.dictionary_of_color_combinations,
 )
 _MATPLOTLIB_COLORS = get_named_colors_mapping()
+
+COLOR_SCHEME_KEYS = ("facecolor", "water", "greens", "roads")
 
 
 def _plot_palette(dct: Mapping[str, Color]):
@@ -67,7 +70,10 @@ class ColorScheme:
         if isinstance(arg, str):
             if arg.startswith("#"):
                 return Color(arg)
-            return Color(_MATPLOTLIB_COLORS[arg])
+            try:
+                return Color(_MATPLOTLIB_COLORS[arg])
+            except KeyError as e:
+                raise ValueError(f"Unknown color name: {arg!r}") from e
         if isinstance(arg, (list, tuple)):
             if not all(isinstance(element, (int, float)) for element in arg):
                 raise _type_error
@@ -172,6 +178,42 @@ def get_available_colorschemes():
 @cache
 def get_colorscheme(name):
     return get_colorschemes()[name]
+
+
+def color_scheme_from_mapping(data: Mapping) -> ColorScheme:
+    keys = set(data.keys())
+    required = set(COLOR_SCHEME_KEYS)
+    missing = required - keys
+    if missing:
+        raise ValueError(f"Missing color keys: {sorted(missing)}")
+    extra = keys - required
+    if extra:
+        raise ValueError(f"Unexpected color keys: {sorted(extra)}")
+    try:
+        return ColorScheme(**{key: data[key] for key in COLOR_SCHEME_KEYS})
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Invalid color value in scheme: {e}") from e
+
+
+def _inline_color_suffix(scheme: ColorScheme) -> str:
+    digest = hashlib.sha256("".join(scheme.to_json().values()).encode()).hexdigest()[:8]
+    return f"custom_{digest}"
+
+
+def resolve_poster_color(spec: str | Mapping) -> tuple[ColorScheme, str]:
+    if hasattr(spec, "model_dump"):
+        spec = spec.model_dump()
+    if isinstance(spec, Mapping):
+        scheme = color_scheme_from_mapping(spec)
+        return scheme, _inline_color_suffix(scheme)
+    text = spec.strip()
+    if text.startswith("{") or text.startswith("["):
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            raise ValueError("Inline color JSON must be an object")
+        scheme = color_scheme_from_mapping(data)
+        return scheme, _inline_color_suffix(scheme)
+    return get_colorscheme(text), text
 
 
 def add_colorscheme(name: str, colorscheme: ColorScheme):

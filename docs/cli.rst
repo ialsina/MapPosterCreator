@@ -30,7 +30,8 @@ Options:
 * ``-c``, ``--country-code`` — a two-letter code used to narrow city lookup.
 * ``-i``, ``--interactive`` — prompt for city or region selection when
   multiple candidates exist. Automatic selection is the default.
-* ``--colors`` — one or more colour-scheme names. Defaults to ``white``.
+* ``--colors`` — one or more colour-scheme names, or a JSON object with keys
+  ``facecolor``, ``water``, ``greens``, and ``roads``. Defaults to ``white``.
   Unknown names are skipped with a message.
 * ``-w``, ``--width`` — square poster width. An unqualified number and values
   ending in ``cm`` are interpreted as centimetres; ``in`` means inches.

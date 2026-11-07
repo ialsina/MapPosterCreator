@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 import webbrowser
@@ -14,6 +15,7 @@ from map_poster_creator.colorscheme import (
     add_colorscheme,
     get_colorscheme,
     get_colorschemes,
+    resolve_poster_color,
 )
 from map_poster_creator.config import config, paths
 from map_poster_creator.core import (
@@ -141,9 +143,10 @@ def _add_poster_subparsers(subparser_group) -> None:
     poster_parser.add_argument(
         "--colors",
         help=(
-            "Provide one or several color schemes."
-            'Default: "white". '
-            'Type "mapoc color list" to see a list of available colors.'
+            "One or more color schemes: registered names (default: white) or a JSON "
+            "object with keys facecolor, water, greens, and roads. Each value may be "
+            'hex (e.g. "#433633"), an HTML/Matplotlib color name, or [r, g, b]. '
+            'See "mapoc color list" for registered names.'
         ),
         default=["white"],
         nargs="+",
@@ -407,14 +410,22 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
         output_prefix = city_name or "polygon_poster"
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    for cscheme_name in colors:
-        fname = f"{output_prefix}_{cscheme_name}.png"
+    for color_spec in colors:
+        try:
+            color_scheme, color_suffix = resolve_poster_color(color_spec)
+        except KeyError:
+            print(f"Skipping color {color_spec!r} as it is unknown.")
+            continue
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(f"Invalid color spec {color_spec!r}: {e}") from e
+
+        fname = f"{output_prefix}_{color_suffix}.png"
         fpath = paths.output_dir / fname
         try:
             create_poster(
                 shp_dir=Path(shp_path),
                 geojson_path=Path(geojson_path),
-                color=get_colorscheme(cscheme_name),
+                color=color_scheme,
                 width=width_in,
                 dpi=args.dpi,
                 output=fpath,
@@ -425,8 +436,6 @@ def _poster_service(args: Namespace, print_help: Callable) -> None:
                 "passed with polygons defined, which do not belong to the "
                 "SHP file. "
             ) from exc
-        except KeyError:
-            print(f"Skipping color {cscheme_name} as it is unknown.")
     return
 
 

@@ -1,5 +1,6 @@
 """API endpoint handlers."""
 
+import json
 import logging
 import traceback
 from pathlib import Path
@@ -10,7 +11,7 @@ from fastapi.responses import FileResponse
 
 from map_poster_creator.api.models import Coordinate, PosterRequest, PosterRequestSimple
 from map_poster_creator.api.utils import find_shp_from_polygon
-from map_poster_creator.colorscheme import get_colorscheme, get_colorschemes
+from map_poster_creator.colorscheme import get_colorschemes, resolve_poster_color
 from map_poster_creator.config import paths
 from map_poster_creator.core import create_poster_from_coordinates
 from map_poster_creator.data import polygon_from_coordinates
@@ -142,16 +143,26 @@ def register_endpoints(app):
 
             # Get color scheme
             try:
-                color_scheme = get_colorscheme(request.color)
+                color_scheme, color_label = resolve_poster_color(request.color)
+            except json.JSONDecodeError as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid inline color JSON: {e}",
+                ) from None
             except KeyError:
                 available = list(get_colorschemes().keys())
+                color_name = (
+                    request.color if isinstance(request.color, str) else "inline color object"
+                )
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Unknown color scheme '{request.color}'. "
+                        f"Unknown color scheme '{color_name}'. "
                         f"Available schemes: {', '.join(available)}"
                     ),
                 ) from None
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e)) from None
 
             # Create temporary output file
             output_dir = paths.output_dir
@@ -180,7 +191,7 @@ def register_endpoints(app):
             return FileResponse(
                 path=output_file,
                 media_type="image/png",
-                filename=f"poster_{request.color}.png",
+                filename=f"poster_{color_label}.png",
             )
 
         except HTTPException:

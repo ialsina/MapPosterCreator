@@ -60,7 +60,9 @@ Modules
 
 ``colorscheme``
   Defines colour values, serializes palette files, combines user and generated
-  libraries, and exposes palette operations.
+  libraries, and exposes palette operations. Named schemes and one-off inline
+  definitions are resolved through ``resolve_poster_color`` for the CLI and HTTP
+  service.
 
 ``config``
   Loads repository-level settings and defines paths for user data, output,

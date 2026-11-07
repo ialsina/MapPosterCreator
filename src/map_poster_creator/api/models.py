@@ -2,6 +2,17 @@
 
 from pydantic import BaseModel, Field, field_validator
 
+ColorComponent = str | list[int] | list[float]
+
+
+class InlineColorScheme(BaseModel):
+    """Inline poster colors: hex strings, HTML/Matplotlib names, or [r, g, b] lists."""
+
+    facecolor: ColorComponent
+    water: ColorComponent
+    greens: ColorComponent
+    roads: ColorComponent
+
 
 class Coordinate(BaseModel):
     """A single coordinate point (longitude, latitude)."""
@@ -62,9 +73,14 @@ class PosterRequest(BaseModel):
             "Takes priority over city/country parameters."
         ),
     )
-    color: str = Field(
+    color: str | InlineColorScheme = Field(
         "white",
-        description="Color scheme name. Use /colors endpoint to see available schemes.",
+        description=(
+            "Named color scheme (see GET /colors) or an inline object with keys "
+            "facecolor, water, greens, and roads. Each value may be a hex string "
+            '(e.g. "#433633"), an HTML/Matplotlib color name (e.g. navy), or '
+            "a list of three RGB numbers."
+        ),
     )
     width: float = Field(15.0, description="Width of the poster in inches", gt=0)
     dpi: int = Field(300, description="Dots per inch (resolution)", gt=0, le=600)
@@ -115,9 +131,14 @@ class PosterRequestSimple(BaseModel):
             "Takes priority over city/country parameters."
         ),
     )
-    color: str = Field(
+    color: str | InlineColorScheme = Field(
         "white",
-        description="Color scheme name. Use /colors endpoint to see available schemes.",
+        description=(
+            "Named color scheme (see GET /colors) or an inline object with keys "
+            "facecolor, water, greens, and roads. Each value may be a hex string "
+            '(e.g. "#433633"), an HTML/Matplotlib color name (e.g. navy), or '
+            "a list of three RGB numbers."
+        ),
     )
     width: float = Field(15.0, description="Width of the poster in inches", gt=0)
     dpi: int = Field(300, description="Dots per inch (resolution)", gt=0, le=600)

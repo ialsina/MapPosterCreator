@@ -91,7 +91,14 @@ ignored. Generated posters are written to `~/mapoc` by default.
 
 ## Colour schemes
 
-The built-in schemes are `black`, `white`, `red`, and `coral`.
+The built-in schemes are `black`, `white`, `red`, and `coral`. Each `--colors`
+argument can also be a JSON object with `facecolor`, `water`, `greens`, and
+`roads` (hex, HTML/Matplotlib name, or three-number RGB list per key):
+
+```bash
+mapoc poster "Berlin, Germany" --colors \
+  '{"facecolor":"#433633","water":"navy","greens":[0.55,0.52,0.49],"roads":"wheat"}'
+```
 
 ```bash
 mapoc color list
@@ -155,6 +162,10 @@ and ReDoc at `/redoc`.
 | `GET /colors` | Available colour schemes |
 | `POST /poster` | Render from `{lon, lat}` coordinate objects |
 | `POST /poster/simple` | Render from `[[lon, lat], ...]` |
+
+The `color` field accepts either a registered scheme name (as returned by
+`GET /colors`) or an inline object with the same four keys as above. See the
+[HTTP service guide](docs/service.rst) for a full request example.
 
 When `shp_path` is omitted, region selection tries explicit
 `latitude`/`longitude`, then `city`/`country`, then the polygon centroid.

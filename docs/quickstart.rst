@@ -61,6 +61,13 @@ If a city is supplied, ``mapoc`` can use it to select the missing shapefile
 directory. ``--coordinates-file`` and ``--geojson-path`` are mutually
 exclusive.
 
+Inline colours
+--------------
+
+Instead of a registered scheme name, any ``--colors`` argument may be a JSON
+object with keys ``facecolor``, ``water``, ``greens``, and ``roads``. See
+:doc:`color-schemes` for value formats and an HTTP equivalent.
+
 Prepare a boundary
 ------------------
 

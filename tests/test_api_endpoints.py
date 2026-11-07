@@ -103,22 +103,77 @@ class TestPosterEndpoint:
         request_data = {
             "coordinates": [{"lon": c[0], "lat": c[1]} for c in sample_coordinates],
             "color": "nonexistent_color",
-            "shp_path": str(
-                mock_shp_dir
-            ),  # Provide SHP path to avoid SHP finding error
+            "shp_path": str(mock_shp_dir),  # Provide SHP path to avoid SHP finding error
         }
         with patch(
-            "map_poster_creator.api.endpoints.get_colorschemes"
-        ) as mock_get_colors:
-            mock_get_colors.return_value = {"white": MagicMock()}
+            "map_poster_creator.api.endpoints.get_colorschemes",
+            return_value={"white": MagicMock()},
+        ):
+            response = client.post("/poster", json=request_data)
+            assert response.status_code == 400
+            data = response.json()
+            assert "Unknown color scheme" in data["detail"]
+
+    def test_poster_inline_color_invalid_keys(self, client, sample_coordinates, mock_shp_dir):
+        """Inline color object must include exactly the four layer keys."""
+        request_data = {
+            "coordinates": [{"lon": c[0], "lat": c[1]} for c in sample_coordinates],
+            "color": {"facecolor": "white", "water": "navy", "greens": "green"},
+            "shp_path": str(mock_shp_dir),
+        }
+        response = client.post("/poster", json=request_data)
+        assert response.status_code == 422
+
+    def test_poster_inline_color_invalid_value(self, client, sample_coordinates, mock_shp_dir):
+        """Unknown HTML color names in inline scheme return 400."""
+        request_data = {
+            "coordinates": [{"lon": c[0], "lat": c[1]} for c in sample_coordinates],
+            "color": {
+                "facecolor": "not_a_color_xyz",
+                "water": "navy",
+                "greens": "green",
+                "roads": "black",
+            },
+            "shp_path": str(mock_shp_dir),
+        }
+        response = client.post("/poster", json=request_data)
+        assert response.status_code == 400
+        assert "Unknown color name" in response.json()["detail"]
+
+    def test_poster_inline_color_success(
+        self, client, sample_coordinates, mock_shp_dir, mock_colorscheme, temp_dir
+    ):
+        """POST /poster accepts color as an inline object."""
+        request_data = {
+            "coordinates": [{"lon": c[0], "lat": c[1]} for c in sample_coordinates],
+            "color": {
+                "facecolor": "#433633",
+                "water": "navy",
+                "greens": [0.55, 0.52, 0.49],
+                "roads": "wheat",
+            },
+            "shp_path": str(mock_shp_dir),
+        }
+        with patch(
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "custom_abcdef12"),
+        ):
             with patch(
-                "map_poster_creator.api.endpoints.get_colorscheme",
-                side_effect=KeyError("nonexistent_color"),
-            ):
-                response = client.post("/poster", json=request_data)
-                assert response.status_code == 400
-                data = response.json()
-                assert "Unknown color scheme" in data["detail"]
+                "map_poster_creator.api.endpoints.create_poster_from_coordinates"
+            ) as mock_create:
+                mock_create.return_value = None
+                with patch("map_poster_creator.api.endpoints.paths") as mock_paths:
+                    mock_paths.output_dir = temp_dir / "output"
+                    mock_paths.output_dir.mkdir(parents=True, exist_ok=True)
+                    output_file = mock_paths.output_dir / "poster_12345678.png"
+                    output_file.touch()
+                    with patch("map_poster_creator.api.endpoints.uuid4") as mock_uuid:
+                        mock_uuid.return_value.hex = "12345678"
+                        response = client.post("/poster", json=request_data)
+                        assert response.status_code == 200
+                        mock_create.assert_called_once()
+                        call_kwargs = mock_create.call_args[1]
+                        assert call_kwargs["color"] == mock_colorscheme
 
     def test_poster_invalid_dpi(self, client, sample_coordinates):
         """Test poster creation with invalid DPI."""
@@ -140,9 +195,7 @@ class TestPosterEndpoint:
         response = client.post("/poster", json=request_data)
         assert response.status_code == 422
 
-    def test_poster_invalid_shp_path(
-        self, client, sample_coordinates, mock_colorscheme
-    ):
+    def test_poster_invalid_shp_path(self, client, sample_coordinates, mock_colorscheme):
         """Test poster creation with non-existent SHP path."""
         request_data = {
             "coordinates": [{"lon": c[0], "lat": c[1]} for c in sample_coordinates],
@@ -150,8 +203,8 @@ class TestPosterEndpoint:
             "shp_path": "/nonexistent/path",
         }
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             response = client.post("/poster", json=request_data)
             assert response.status_code == 400
@@ -169,8 +222,8 @@ class TestPosterEndpoint:
         }
 
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             with patch(
                 "map_poster_creator.api.endpoints.create_poster_from_coordinates"
@@ -204,8 +257,8 @@ class TestPosterEndpoint:
         }
 
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             with patch(
                 "map_poster_creator.api.endpoints.find_shp_from_polygon",
@@ -221,17 +274,13 @@ class TestPosterEndpoint:
                         output_file = mock_paths.output_dir / "poster_12345678.png"
                         output_file.touch()
 
-                        with patch(
-                            "map_poster_creator.api.endpoints.uuid4"
-                        ) as mock_uuid:
+                        with patch("map_poster_creator.api.endpoints.uuid4") as mock_uuid:
                             mock_uuid.return_value.hex = "12345678"
                             response = client.post("/poster", json=request_data)
                             # Should call find_shp_from_polygon with city
                             assert response.status_code in [200, 500]
 
-    def test_poster_auto_find_shp_failure(
-        self, client, sample_coordinates, mock_colorscheme
-    ):
+    def test_poster_auto_find_shp_failure(self, client, sample_coordinates, mock_colorscheme):
         """Test poster creation when auto-finding SHP fails."""
         request_data = {
             "coordinates": [{"lon": c[0], "lat": c[1]} for c in sample_coordinates],
@@ -239,8 +288,8 @@ class TestPosterEndpoint:
         }
 
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             with patch(
                 "map_poster_creator.api.endpoints.find_shp_from_polygon",
@@ -260,8 +309,8 @@ class TestPosterEndpoint:
         }
 
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             with patch(
                 "map_poster_creator.api.endpoints.create_poster_from_coordinates",
@@ -286,8 +335,8 @@ class TestPosterEndpoint:
         }
 
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             with patch(
                 "map_poster_creator.api.endpoints.create_poster_from_coordinates"
@@ -317,8 +366,8 @@ class TestPosterEndpoint:
             }
 
             with patch(
-                "map_poster_creator.api.endpoints.get_colorscheme",
-                return_value=mock_colorscheme,
+                "map_poster_creator.api.endpoints.resolve_poster_color",
+                return_value=(mock_colorscheme, "white"),
             ):
                 with patch(
                     "map_poster_creator.api.endpoints.create_poster_from_coordinates"
@@ -330,9 +379,7 @@ class TestPosterEndpoint:
                         output_file = mock_paths.output_dir / f"poster_{dpi}.png"
                         output_file.touch()
 
-                        with patch(
-                            "map_poster_creator.api.endpoints.uuid4"
-                        ) as mock_uuid:
+                        with patch("map_poster_creator.api.endpoints.uuid4") as mock_uuid:
                             mock_uuid.return_value.hex = f"{dpi:08d}"
                             response = client.post("/poster", json=request_data)
                             # Should accept valid DPI values
@@ -351,8 +398,8 @@ class TestPosterEndpoint:
             }
 
             with patch(
-                "map_poster_creator.api.endpoints.get_colorscheme",
-                return_value=mock_colorscheme,
+                "map_poster_creator.api.endpoints.resolve_poster_color",
+                return_value=(mock_colorscheme, "white"),
             ):
                 with patch(
                     "map_poster_creator.api.endpoints.create_poster_from_coordinates"
@@ -364,9 +411,7 @@ class TestPosterEndpoint:
                         output_file = mock_paths.output_dir / f"poster_{width}.png"
                         output_file.touch()
 
-                        with patch(
-                            "map_poster_creator.api.endpoints.uuid4"
-                        ) as mock_uuid:
+                        with patch("map_poster_creator.api.endpoints.uuid4") as mock_uuid:
                             mock_uuid.return_value.hex = f"{int(width):08d}"
                             response = client.post("/poster", json=request_data)
                             # Should accept valid width values
@@ -421,8 +466,8 @@ class TestPosterSimpleEndpoint:
         }
 
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             with patch(
                 "map_poster_creator.api.endpoints.create_poster_from_coordinates"
@@ -452,8 +497,8 @@ class TestPosterSimpleEndpoint:
         }
 
         with patch(
-            "map_poster_creator.api.endpoints.get_colorscheme",
-            return_value=mock_colorscheme,
+            "map_poster_creator.api.endpoints.resolve_poster_color",
+            return_value=(mock_colorscheme, "white"),
         ):
             with patch(
                 "map_poster_creator.api.endpoints.find_shp_from_polygon",
@@ -469,9 +514,7 @@ class TestPosterSimpleEndpoint:
                         output_file = mock_paths.output_dir / "poster_12345678.png"
                         output_file.touch()
 
-                        with patch(
-                            "map_poster_creator.api.endpoints.uuid4"
-                        ) as mock_uuid:
+                        with patch("map_poster_creator.api.endpoints.uuid4") as mock_uuid:
                             mock_uuid.return_value.hex = "12345678"
                             response = client.post("/poster/simple", json=request_data)
                             assert response.status_code in [200, 500]
@@ -488,8 +531,8 @@ class TestPosterSimpleEndpoint:
             }
 
             with patch(
-                "map_poster_creator.api.endpoints.get_colorscheme",
-                return_value=mock_colorschemes[color_name],
+                "map_poster_creator.api.endpoints.resolve_poster_color",
+                return_value=(mock_colorschemes[color_name], color_name),
             ):
                 with patch(
                     "map_poster_creator.api.endpoints.create_poster_from_coordinates"
@@ -501,9 +544,7 @@ class TestPosterSimpleEndpoint:
                         output_file = mock_paths.output_dir / f"poster_{color_name}.png"
                         output_file.touch()
 
-                        with patch(
-                            "map_poster_creator.api.endpoints.uuid4"
-                        ) as mock_uuid:
+                        with patch("map_poster_creator.api.endpoints.uuid4") as mock_uuid:
                             mock_uuid.return_value.hex = color_name[:8].ljust(8, "0")
                             response = client.post("/poster/simple", json=request_data)
                             # Should accept all valid color schemes
