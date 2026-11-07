@@ -17,6 +17,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 - Shared helpers `color_scheme_from_mapping` and `resolve_poster_color` in the
   colour module for CLI and API resolution.
 
+### Fixed
+
+- Added missing Python dependency `six`.
+
 ## [0.11.0] - 2026-09-22
 
 ### Added
